@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Aora",
-    "slug": "aora",
+    "name": "CKD",
+    "slug": "CKD",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "assets/images/profile.png",
-    "scheme": "aora",
+    "scheme": "CKD",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "assets/1.png",
@@ -20,7 +20,7 @@
         "foregroundImage": "assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.aditya210399.aora"
+      "package": "com.aditya210399.CKD"
     },
     "web": {
       "bundler": "metro",
