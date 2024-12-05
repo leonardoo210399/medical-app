@@ -35,7 +35,12 @@ const SignIn = () => {
       setIsLogged(true);
 
       Alert.alert("Success", "User signed in successfully");
-      router.replace("/home");
+      if (result.doctor){
+        router.replace("/doctorHome");
+      } else {
+        router.replace("/patientHome");
+      }
+      // console.log(result);
     } catch (error) {
       Alert.alert("Error", error.message);
     } finally {

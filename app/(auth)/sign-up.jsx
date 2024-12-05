@@ -17,32 +17,35 @@ const SignUp = () => {
     username: "",
     email: "",
     password: "",
+    doctor:false,
   });
 
   const [isSubmitting, setSubmitting] = useState(false);
- 
-  const submit = async () => {
-    if (form.username === "" || form.email === "" || form.password === "") {
-      Alert.alert("Error", "Please fill in all fields");
-    }
 
-    setSubmitting(true);
-    try {
-      const result = await createUser(form.email, form.password, form.username);
-      setUser(result);
-      setIsLogged(true);
+    const submit = async () => {
+        if (form.username === "" || form.email === "" || form.password === "") {
+            Alert.alert("Error", "Please fill in all fields");
+            return;  // Ensure it stops execution if fields are empty
+        }
 
-      router.replace("/home");
-    } catch (error) {
-      Alert.alert("Error", error.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+        setSubmitting(true);
+        try {
+            const result = await createUser(form.email, form.password, form.username, form.doctor);
+            setUser(result);
+            setIsLogged(true);
+
+            router.replace("/patientProfileForm");
+        } catch (error) {
+            Alert.alert("Sign Up Error", error.message);
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
 
 
-  return (
+
+    return (
     <SafeAreaView className="bg-primary h-full">
       <ScrollView>
         <View
@@ -84,7 +87,7 @@ const SignUp = () => {
           />
 
           <CustomButton
-            title="Sign In"
+            title="Sign Up"
             handlePress={submit}
             containerStyles="mt-7"
             isLoading={isSubmitting}

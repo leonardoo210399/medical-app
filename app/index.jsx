@@ -7,10 +7,18 @@ import CustomButton from "../components/CustomButton";
 import { useGlobalContext } from "../context/GlobalProvider";
 
 export default function App() {
-  const { loading, isLogged } = useGlobalContext(); 
+  const { loading, isLogged, user } = useGlobalContext();
 
-  if (!loading && isLogged) return <Redirect href="/home" />;
+  // console.log("index.jsx",user);
 
+
+  // if (!loading && isLogged) return user.doctor?<Redirect href="/doctorHome" />:<Redirect href="/patientHome" />;
+  if (!loading && isLogged) {
+    if (user && typeof user.doctor !== "undefined") {
+      return user.doctor ? <Redirect href="/doctorHome" /> : <Redirect href="/patientHome" />;
+    }
+    // Optionally handle the case where user is undefined or missing required properties
+  }
   return (
     <SafeAreaView className="bg-primary h-full">
       <ScrollView
