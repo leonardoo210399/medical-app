@@ -13,6 +13,7 @@ import eye from "../assets/icons/eye.png";
 import play from "../assets/icons/play.png";
 import calendar from "../assets/icons/calendar.png";
 import pill from "../assets/icons/pill.png";
+import list from "../assets/icons/list.png";
 
 export default {
   play,
@@ -30,4 +31,5 @@ export default {
   eye,
   calendar,
   pill,
+  list
 };
