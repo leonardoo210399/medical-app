@@ -2,13 +2,15 @@ import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, Image, TextInput, ActivityIndicator } from "react-native";
 import { databases } from "../../lib/appwrite";
 import { SafeAreaView } from "react-native-safe-area-context";
-import tailwind from "tailwind-react-native-classnames";
+import CustomButton from "../../components/CustomButton"
+import { router } from "expo-router";
 
 const PatientList = () => {
     const [db, setDb] = useState([]);
     const [filteredDb, setFilteredDb] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
+
 
     useEffect(() => {
         init();
@@ -89,6 +91,20 @@ const PatientList = () => {
                     <Text className="text-secondary-200">Dialysis: </Text>
                     {item.dialysis ? "Yes" : "No"}
                 </Text>
+            </View>
+            <View className="flex-row justify-between -ml-4">
+                <CustomButton
+                    title={`Edit Patient \nDetails`}
+                    handlePress={() => {}}
+                    containerStyles="w-1/2 m-1 px-2"
+                    textStyles="text-center text-sm"
+                />
+                <CustomButton
+                    title={`Add/Remove \nMedication`}
+                    handlePress={() => {}}
+                    containerStyles="w-1/2 m-1 px-2 !bg-gray-100"
+                    textStyles="text-center text-sm"
+                />
             </View>
         </View>
     );
