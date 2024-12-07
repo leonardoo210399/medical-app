@@ -8,7 +8,7 @@ import { Link, router } from "expo-router";
 import { patientProfileForm, signOut } from "../lib/appwrite";
 // import { useGlobalContext } from "../context/GlobalProvider";
 
-const PatientProfileUpdate = ({user}) => {
+const PatientProfileUpdate = (user) => {
     // const { user, setUser, setIsLogged } = useGlobalContext();
 
     const logout = async () => {

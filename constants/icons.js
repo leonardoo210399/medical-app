@@ -14,7 +14,7 @@ import play from "../assets/icons/play.png";
 import calendar from "../assets/icons/calendar.png";
 import pill from "../assets/icons/pill.png";
 import list from "../assets/icons/list.png";
-
+import close from "../assets/icons/close.png"
 export default {
   play,
   bookmark,
@@ -31,5 +31,6 @@ export default {
   eye,
   calendar,
   pill,
-  list
+  list,
+  close
 };
