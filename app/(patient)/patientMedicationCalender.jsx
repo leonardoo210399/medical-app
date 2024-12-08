@@ -1,5 +1,3 @@
-// PatientMedicationCalender.jsx
-
 import React, { useCallback, useEffect, useState, memo } from 'react';
 import {
     View,
@@ -9,49 +7,41 @@ import {
     TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { databases, Query } from '../../lib/appwrite'; // Ensure Query is imported correctly
+import { databases, Query } from '../../lib/appwrite';
 import { useGlobalContext } from '../../context/GlobalProvider';
 import { Agenda } from 'react-native-calendars';
-import moment from 'moment'; // For date manipulation
-import { Ionicons } from '@expo/vector-icons'; // For refresh icon (optional)
+import moment from 'moment';
+import { Ionicons } from '@expo/vector-icons';
 
-// Memoized Item Component
 const MedicationItem = memo(({ item }) => (
     <View style={styles.itemContainer}>
         <Text style={styles.medicineName}>{item?.medicineName}</Text>
         <Text style={styles.dosage}>
-            Dosage: {item?.dosesPerDay} time(s)/day
+            Dosage: {item?.dosage}
         </Text>
         <Text style={styles.timeText}>Time: {item?.time}</Text>
         <Text style={styles.dateRange}>
             {item?.formattedStartDate} - {item?.formattedEndDate}
         </Text>
     </View>
-), (prevProps, nextProps) => {
-    // Only re-render if item props have changed
-    return prevProps.item === nextProps.item;
-});
+), (prevProps, nextProps) => prevProps.item === nextProps.item);
 
 const PatientMedicationCalender = () => {
-    const { user } = useGlobalContext(); // Ensure user context is correctly set
+    const { user } = useGlobalContext();
 
     const [medications, setMedications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [items, setItems] = useState({});
-    const [refreshing, setRefreshing] = useState(false); // Added refreshing state
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         init();
     }, []);
 
-    /**
-     * Refetches medication data.
-     */
     const refetch = async () => {
         try {
             setRefreshing(true);
             await init();
-
         } catch (error) {
             console.error('Error during refetch:', error);
         } finally {
@@ -59,28 +49,21 @@ const PatientMedicationCalender = () => {
         }
     };
 
-    /**
-     * Callback for handling refresh action.
-     */
     const onRefresh = useCallback(() => {
         refetch();
     }, []);
 
-    /**
-     * Initializes and fetches medication data from the database.
-     */
     const init = async () => {
         try {
             setLoading(true);
             const dbResponse = await databases.listDocuments(
-                'HealthManagementDatabaseId', // Replace with your actual Database ID
-                'MedicationsCollectionId',    // Replace with your actual Collection ID
-                [Query.equal('userMedication', user.$id)] // Ensure 'userId' is the correct field linking to the user
+                'HealthManagementDatabaseId', // Replace with actual Database ID
+                'MedicationsCollectionId',    // Replace with actual Collection ID
+                [Query.equal('userMedication', user.$id)]
             );
             const fetchedMedications = dbResponse.documents || [];
             setMedications(fetchedMedications);
             processMedications(fetchedMedications);
-            // console.log('Fetched Medications:', fetchedMedications); // Log the fetched documents
         } catch (error) {
             console.error('Error fetching patient data:', error);
             setMedications([]);
@@ -91,65 +74,181 @@ const PatientMedicationCalender = () => {
     };
 
     /**
-     * Processes medication data to organize it by date and time for the Agenda component.
-     * Each time in the 'times' array is treated as a separate event.
-     * @param {Array} medicationsList - List of medication documents.
+     * Utility: Add an event to items
+     */
+    const addEvent = (itemsObj, dateStr, med, time) => {
+        if (!itemsObj[dateStr]) {
+            itemsObj[dateStr] = [];
+        }
+        itemsObj[dateStr].push({
+            id: `${med.$id}-${dateStr}-${time}`,
+            medicineName: med.medicineName,
+            dosage: med.dosage,
+            time: time,
+            formattedStartDate: moment(med.startDate).format('MMM DD, YYYY'),
+            formattedEndDate: moment(med.endDate).format('MMM DD, YYYY'),
+        });
+    };
+
+    /**
+     * For interval frequency (days), we need to check if a given day should have medication.
+     */
+    const isIntervalDay = (dayIndex, intervalValue) => {
+        // If dayIndex starts from 0 at startDate, medication day if dayIndex % intervalValue == 0
+        return (dayIndex % intervalValue) === 0;
+    };
+
+    /**
+     * Process medications based on their frequency and populate the agenda items.
      */
     const processMedications = (medicationsList) => {
-        const items = {};
+        const updatedItems = {};
 
         medicationsList.forEach((med) => {
             const start = moment(med.startDate).startOf('day');
             const end = moment(med.endDate).startOf('day');
-            const current = start.clone();
 
-            while (current.isSameOrBefore(end)) {
-                const dateStr = current.format('YYYY-MM-DD');
+            const frequency = med.frequency;
+            // Use provided times or fallback
+            let times = Array.isArray(med.times) && med.times.length > 0 ? med.times : null;
+            const defaultTime = "08:00";
 
-                med.times.forEach((time) => {
-                    const eventTime = moment(time, 'HH:mm').format('HH:mm');
-                    const eventId = `${med.$id}-${dateStr}-${eventTime}`; // Unique ID for each event
+            // Convert specificDays to a consistent format
+            const specificDays = Array.isArray(med.specificDays)
+                ? med.specificDays.map(d => d.toLowerCase())
+                : [];
 
-                    if (!items[dateStr]) {
-                        items[dateStr] = [];
+            switch (frequency) {
+                case 'daily': {
+                    // Daily frequency: take every day
+                    let dailyTimesCount = med.dailyTimes || (times ? times.length : 1);
+                    let dailyTimesArray = times ? times : Array(dailyTimesCount).fill(defaultTime);
+
+                    const current = start.clone();
+                    while (current.isSameOrBefore(end)) {
+                        const dateStr = current.format('YYYY-MM-DD');
+                        dailyTimesArray.forEach((t) => {
+                            addEvent(updatedItems, dateStr, med, t);
+                        });
+                        current.add(1, 'day');
+                    }
+                    break;
+                }
+
+                case 'interval': {
+                    // Interval can be hours or days
+                    const intervalType = med.intervalType;
+                    const intervalValue = med.intervalValue || 1;
+
+                    if (intervalType === 'hours') {
+                        // For hours, start from the first provided time in times[], or default if none provided
+                        const initialTime = times ? times[0] : defaultTime;
+                        // Construct a starting datetime from startDate with initialTime
+                        let startDateTime = moment(med.startDate);
+                        const [hour, minute] = initialTime.split(':').map(Number);
+                        startDateTime.set({ hour, minute, second: 0 });
+
+                        let current = startDateTime.clone();
+                        while (current.isSameOrBefore(end, 'day') || current.isSameOrBefore(end)) {
+                            const dateStr = current.format('YYYY-MM-DD');
+                            const timeStr = current.format('HH:mm');
+                            addEvent(updatedItems, dateStr, med, timeStr);
+                            current.add(intervalValue, 'hours');
+                            // Stop if we exceed the end date
+                            if (current.isAfter(end.endOf('day'))) break;
+                        }
+                    } else if (intervalType === 'days') {
+                        // Every X days
+                        let dayIndex = 0;
+                        let current = start.clone();
+                        let dayTimes = times ? times : [defaultTime];
+
+                        while (current.isSameOrBefore(end)) {
+                            if (isIntervalDay(dayIndex, intervalValue)) {
+                                const dateStr = current.format('YYYY-MM-DD');
+                                dayTimes.forEach((t) => {
+                                    addEvent(updatedItems, dateStr, med, t);
+                                });
+                            }
+                            current.add(1, 'day');
+                            dayIndex++;
+                        }
+                    }
+                    break;
+                }
+
+                case 'specificDays': {
+                    // Certain weekdays only
+                    const dayTimes = times ? times : [defaultTime];
+                    const current = start.clone();
+                    while (current.isSameOrBefore(end)) {
+                        const weekday = current.format('dddd').toLowerCase();
+                        if (specificDays.includes(weekday)) {
+                            const dateStr = current.format('YYYY-MM-DD');
+                            dayTimes.forEach((t) => {
+                                addEvent(updatedItems, dateStr, med, t);
+                            });
+                        }
+                        current.add(1, 'day');
+                    }
+                    break;
+                }
+
+                case 'cyclic': {
+                    // Cycle of intakeDays then pauseDays
+                    const intakeDays = med.cyclicIntakeDays || 0;
+                    const pauseDays = med.cyclicPauseDays || 0;
+                    const cycleLength = intakeDays + pauseDays;
+
+                    if (cycleLength === 0) {
+                        console.warn(`Cyclic medication ${med.medicineName} has no valid cycle length.`);
+                        break;
                     }
 
-                    items[dateStr].push({
-                        id: eventId,
-                        medicineName: med.medicineName,
-                        dosesPerDay: med.dosesPerDay,
-                        time: eventTime,
-                        formattedStartDate: moment(med.startDate).format('MMM DD, YYYY'),
-                        formattedEndDate: moment(med.endDate).format('MMM DD, YYYY'),
-                    });
-                });
+                    let dayTimes = times ? times : [defaultTime];
+                    let current = start.clone();
+                    let dayIndex = 0;
 
-                current.add(1, 'days');
+                    while (current.isSameOrBefore(end)) {
+                        const dayInCycle = dayIndex % cycleLength;
+                        if (dayInCycle < intakeDays) {
+                            const dateStr = current.format('YYYY-MM-DD');
+                            dayTimes.forEach((t) => {
+                                addEvent(updatedItems, dateStr, med, t);
+                            });
+                        }
+                        current.add(1, 'day');
+                        dayIndex++;
+                    }
+                    break;
+                }
+
+                case 'onDemand': {
+                    // No events for onDemand
+                    break;
+                }
+
+                default: {
+                    console.warn(`Unknown frequency: ${frequency} for medication ${med.medicineName}`);
+                    break;
+                }
             }
         });
 
-        // Optionally, sort items by time for each day
-        Object.keys(items).forEach((date) => {
-            items[date].sort((a, b) => {
+        // Sort events by time for each day
+        Object.keys(updatedItems).forEach((date) => {
+            updatedItems[date].sort((a, b) => {
                 return moment(a.time, 'HH:mm').diff(moment(b.time, 'HH:mm'));
             });
         });
 
-        setItems(items);
-        console.log(items)
-        console.log("the end")
+        setItems(updatedItems);
     };
 
-    /**
-     * Memoized renderItem function.
-     */
     const renderItem = useCallback((item) => {
         return <MedicationItem item={item} />;
     }, []);
 
-    /**
-     * Renders content for empty dates in the Agenda.
-     */
     const renderEmptyDate = useCallback(() => {
         return (
             <View style={styles.emptyDateContainer}>
@@ -158,9 +257,6 @@ const PatientMedicationCalender = () => {
         );
     }, []);
 
-    /**
-     * Conditionally renders the loading indicator during the initial data fetch.
-     */
     if (loading && !refreshing) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
@@ -171,7 +267,6 @@ const PatientMedicationCalender = () => {
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* Header with Title and Refresh Button */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Medication Calendar</Text>
                 <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
@@ -179,7 +274,6 @@ const PatientMedicationCalender = () => {
                 </TouchableOpacity>
             </View>
 
-            {/* Agenda Component to Display Medications */}
             <Agenda
                 items={items}
                 selected={moment().format('YYYY-MM-DD')}
@@ -193,18 +287,9 @@ const PatientMedicationCalender = () => {
                     agendaTodayColor: '#00adf5',
                     dotColor: '#00adf5',
                     selectedDayTextColor: '#ffffff',
-                    // Additional theming options can be added here
                 }}
-                // Optionally, customize the markingType or other props
-                // Add additional props to optimize performance
-                // For example:
-                // maxItemsPerDay={5}
-                // removeClippedSubviews={true}
-                // initialNumToRender={10}
-                // windowSize={21}
             />
 
-            {/* Refreshing Indicator Overlay */}
             {refreshing && (
                 <View style={styles.refreshingOverlay}>
                     <ActivityIndicator size="small" color="#00adf5" />
@@ -265,7 +350,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#888888',
     },
-    header: { // Header containing the title and refresh button
+    header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -282,7 +367,7 @@ const styles = StyleSheet.create({
     refreshButton: {
         padding: 5,
     },
-    refreshingOverlay: { // Overlay shown during refreshing
+    refreshingOverlay: {
         position: 'absolute',
         top: '50%',
         left: '50%',
