@@ -9,8 +9,6 @@ import { useGlobalContext } from "../context/GlobalProvider";
 export default function App() {
   const { loading, isLogged, user } = useGlobalContext();
 
-  // console.log("index.jsx",user);
-
 
   // if (!loading && isLogged) return user.doctor?<Redirect href="/doctorHome" />:<Redirect href="/patientHome" />;
   if (!loading && isLogged) {

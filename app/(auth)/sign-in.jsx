@@ -40,7 +40,6 @@ const SignIn = () => {
       } else {
         router.replace("/patientHome");
       }
-      // console.log(result);
     } catch (error) {
       Alert.alert("Error", error.message);
     } finally {

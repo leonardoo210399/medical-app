@@ -9,6 +9,7 @@ import FormField from "../../components/FormField";
 
 const PatientProfile = () => {
     const { user, setUser, setIsLogged } = useGlobalContext();
+    console.log(user);
     const patient = user?.patients || {};
 
     // Local state for each field

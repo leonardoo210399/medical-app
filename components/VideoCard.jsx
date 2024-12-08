@@ -14,8 +14,7 @@ const VideoCard = ({
 }) => {
   const [play, setPlay] = useState(false);
 
-  // console.log(video);
-  
+
 
   return (
     <View className="flex flex-col items-center px-4 mb-14">

@@ -66,7 +66,6 @@ const PatientProfileUpdate = (user) => {
         };
 
         await patientProfileForm(patientData);
-        console.log("patientData",patientData)
         await logout();
         router.replace("/sign-in");
     };

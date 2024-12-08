@@ -46,6 +46,11 @@ const PatientList = () => {
       );
       setDb(dbResponse.documents || []);
       setFilteredDb(dbResponse.documents || []);
+      const dbResponse1 = await databases.listDocuments(
+          "HealthManagementDatabaseId",
+          "MedicationsCollectionId"
+      );
+      // console.log(dbResponse1.documents);
     } catch (error) {
       console.error("Error fetching patient data:", error);
       setDb([]);
@@ -183,7 +188,7 @@ const PatientList = () => {
       ) : (
         <FlatList
           data={filteredDb}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.$id}
           renderItem={renderPatient}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 20 }}

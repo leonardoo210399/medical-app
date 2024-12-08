@@ -8,6 +8,7 @@ import {icons} from "../../constants";
 
 const DoctorHome = () => {
     const { user, setUser, setIsLogged } = useGlobalContext();
+    console.log(user)
     const logout = async () => {
         await signOut();
         setUser(null);
