@@ -1,0 +1,137 @@
+[
+  {
+    "$collectionId": "MedicationsCollectionId",
+    "$createdAt": "2024-12-08T19:39:09.784+00:00",
+    "$databaseId": "HealthManagementDatabaseId",
+    "$id": "6755f5dd0021e6b40863",
+    "$permissions": [
+      "read(\"user:675098d0002e726875d2\")",
+      "update(\"user:675098d0002e726875d2\")",
+      "delete(\"user:675098d0002e726875d2\")"
+    ],
+    "$updatedAt": "2024-12-09T11:12:23.337+00:00",
+    "cyclicIntakeDays": null,
+    "cyclicPauseDays": null,
+    "dailyTimes": 3,
+    "dosage": "1 tablet",
+    "endDate": "2024-12-09T19:38:00.000+00:00",
+    "frequency": "daily",
+    "intervalType": null,
+    "intervalValue": null,
+    "medicineName": "Medicine 1",
+    "onDemand": false,
+    "specificDays": [],
+    "startDate": "2024-11-30T19:38:00.000+00:00",
+    "times": ["8:00 AM", "2:00 PM", "8:00 PM"],
+    "userMedication": {
+      "$collectionId": "UsersCollectionId",
+      "$createdAt": "2024-12-07T13:34:17.209+00:00",
+      "$databaseId": "HealthManagementDatabaseId",
+      "$id": "67544ed8002b881b9b7d",
+      "$permissions": [
+        "read(\"user:675098d0002e726875d2\")",
+        "update(\"user:675098d0002e726875d2\")",
+        "delete(\"user:675098d0002e726875d2\")"
+      ],
+      "$updatedAt": "2024-12-07T13:34:46.889+00:00",
+      "accountId": "67544ed60004aaf0182c",
+      "avatar": "https://cloud.appwrite.io/v1/avatars/initials?name=Ronak+Fulzele+&project=ckdprojectid",
+      "doctor": false,
+      "email": "ronakfulzele020806@gmail.com",
+      "patients": {
+        // Details omitted for brevity
+      },
+      "username": "Ronak Fulzele"
+    }
+  },
+  {
+    "$collectionId": "MedicationsCollectionId",
+    "$createdAt": "2024-12-08T19:39:56.249+00:00",
+    "$databaseId": "HealthManagementDatabaseId",
+    "$id": "6755f60c00027d10a570",
+    "$permissions": [
+      "read(\"user:675098d0002e726875d2\")",
+      "update(\"user:675098d0002e726875d2\")",
+      "delete(\"user:675098d0002e726875d2\")"
+    ],
+    "$updatedAt": "2024-12-08T19:39:56.249+00:00",
+    "cyclicIntakeDays": null,
+    "cyclicPauseDays": null,
+    "dailyTimes": null,
+    "dosage": "2 tablets",
+    "endDate": "2024-12-29T19:39:00.000+00:00",
+    "frequency": "interval",
+    "intervalType": "hours",
+    "intervalValue": 6,
+    "medicineName": "Medicine 2",
+    "onDemand": false,
+    "specificDays": [],
+    "startDate": "2024-11-30T19:39:00.000+00:00",
+    "times": ["9:00 AM"],
+    "userMedication": {
+      "$collectionId": "UsersCollectionId",
+      "$createdAt": "2024-12-07T13:34:17.209+00:00",
+      "$databaseId": "HealthManagementDatabaseId",
+      "$id": "67544ed8002b881b9b7d",
+      "$permissions": [
+        "read(\"user:675098d0002e726875d2\")",
+        "update(\"user:675098d0002e726875d2\")",
+        "delete(\"user:675098d0002e726875d2\")"
+      ],
+      "$updatedAt": "2024-12-07T13:34:46.889+00:00",
+      "accountId": "67544ed60004aaf0182c",
+      "avatar": "https://cloud.appwrite.io/v1/avatars/initials?name=Ronak+Fulzele+&project=ckdprojectid",
+      "doctor": false,
+      "email": "ronakfulzele020806@gmail.com",
+      "patients": {
+        // Details omitted for brevity
+      },
+      "username": "Ronak Fulzele"
+    }
+  },
+  {
+    "$collectionId": "MedicationsCollectionId",
+    "$createdAt": "2024-12-08T19:40:46.335+00:00",
+    "$databaseId": "HealthManagementDatabaseId",
+    "$id": "6755f63d003cbf927891",
+    "$permissions": [
+      "read(\"user:675098d0002e726875d2\")",
+      "update(\"user:675098d0002e726875d2\")",
+      "delete(\"user:675098d0002e726875d2\")"
+    ],
+    "$updatedAt": "2024-12-08T19:40:46.335+00:00",
+    "cyclicIntakeDays": null,
+    "cyclicPauseDays": null,
+    "dailyTimes": null,
+    "dosage": "3 tablets",
+    "endDate": "2024-12-29T19:40:00.000+00:00",
+    "frequency": "interval",
+    "intervalType": "days",
+    "intervalValue": 2,
+    "medicineName": "Medicine 3",
+    "onDemand": false,
+    "specificDays": [],
+    "startDate": "2024-11-30T19:40:00.000+00:00",
+    "times": ["12:00 PM"],
+    "userMedication": {
+      "$collectionId": "UsersCollectionId",
+      "$createdAt": "2024-12-07T13:34:17.209+00:00",
+      "$databaseId": "HealthManagementDatabaseId",
+      "$id": "67544ed8002b881b9b7d",
+      "$permissions": [
+        "read(\"user:675098d0002e726875d2\")",
+        "update(\"user:675098d0002e726875d2\")",
+        "delete(\"user:675098d0002e726875d2\")"
+      ],
+      "$updatedAt": "2024-12-07T13:34:46.889+00:00",
+      "accountId": "67544ed60004aaf0182c",
+      "avatar": "https://cloud.appwrite.io/v1/avatars/initials?name=Ronak+Fulzele+&project=ckdprojectid",
+      "doctor": false,
+      "email": "ronakfulzele020806@gmail.com",
+      "patients": {
+        // Details omitted for brevity
+      },
+      "username": "Ronak Fulzele"
+    }
+  }
+]

@@ -394,15 +394,7 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
 
             {/* Submit and Cancel */}
             <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                onPress={onClose}
-                style={styles.cancelButton}
-                accessibilityLabel="Cancel"
-                accessibilityRole="button"
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+            <TouchableOpacity
                 onPress={handleSubmit}
                 style={[styles.submitButton, isSubmitting && styles.disabledButton]}
                 disabled={isSubmitting}
@@ -415,6 +407,15 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
                   <Text style={styles.buttonText}>Submit</Text>
                 )}
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onClose}
+                style={styles.cancelButton}
+                accessibilityLabel="Cancel"
+                accessibilityRole="button"
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              
             </View>
           </ScrollView>
         </View>

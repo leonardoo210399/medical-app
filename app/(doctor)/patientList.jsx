@@ -100,7 +100,7 @@ const PatientList = () => {
     }
   };
 
-  const handleViewMedications = (patient) => {
+  const handleAddMedications = (patient) => {
     // Filter medications by patient ID
     const patientMedications = medications.filter(
       (med) => med.userMedication?.$id === patient.users.$id
@@ -139,7 +139,8 @@ const PatientList = () => {
             <PatientCard
               patient={item}
               onEdit={() => handleEditPatient(item)}
-              onMedication={() => handleViewMedications(item)}
+              onMedication={() => handleAddMedications(item)}
+              // patientMedications={selectedPatient.medications}
             />
           )}
           showsVerticalScrollIndicator={false}

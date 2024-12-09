@@ -12,19 +12,21 @@ import { useGlobalContext } from '../../context/GlobalProvider';
 import { Agenda } from 'react-native-calendars';
 import moment from 'moment';
 import { Ionicons } from '@expo/vector-icons';
+import MedicationItem from '../../components/MedicationItem';
 
-const MedicationItem = memo(({ item }) => (
-    <View style={styles.itemContainer}>
-        <Text style={styles.medicineName}>{item?.medicineName}</Text>
-        <Text style={styles.dosage}>
-            Dosage: {item?.dosage}
-        </Text>
-        <Text style={styles.timeText}>Time: {item?.time}</Text>
-        <Text style={styles.dateRange}>
-            {item?.formattedStartDate} - {item?.formattedEndDate}
-        </Text>
-    </View>
-), (prevProps, nextProps) => prevProps.item === nextProps.item);
+
+// const MedicationItem = memo(({ item }) => (
+//     <View style={styles.itemContainer}>
+//         <Text style={styles.medicineName}>{item?.medicineName}</Text>
+//         <Text style={styles.dosage}>
+//             Dosage: {item?.dosage}
+//         </Text>
+//         <Text style={styles.timeText}>Time: {item?.time}</Text>
+//         <Text style={styles.dateRange}>
+//             {item?.formattedStartDate} - {item?.formattedEndDate}
+//         </Text>
+//     </View>
+// ), (prevProps, nextProps) => prevProps.item === nextProps.item);
 
 const PatientMedicationCalender = () => {
     const { user } = useGlobalContext();

@@ -1,8 +1,11 @@
 import React from "react";
 import { View, Text, Image } from "react-native";
 import CustomButton from "./CustomButton";
+import MedicationList from "./MedicationList";
 
 const PatientCard = ({ patient, onEdit, onMedication }) => {
+  // console.log(patient.users.$id);
+  
   return (
     <View
       className="bg-white shadow-lg rounded-xl p-5 mb-5"
@@ -80,6 +83,9 @@ const PatientCard = ({ patient, onEdit, onMedication }) => {
           textStyles="text-center text-sm"
         />
       </View>
+      <MedicationList
+        userID={patient.users.$id}
+      />
     </View>
   );
 };
