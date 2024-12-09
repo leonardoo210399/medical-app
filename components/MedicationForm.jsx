@@ -192,7 +192,7 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.modalBackground}>
         <View style={styles.modalContainer}>
-          <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
             <Text style={styles.title}>Add Medication</Text>
 
             {/* Medicine Name */}
