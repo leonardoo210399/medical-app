@@ -1,73 +1,139 @@
-import React, { useCallback, useEffect, useState, memo } from 'react';
-import {
-    View,
-    Text,
-    ActivityIndicator,
-    StyleSheet,
-    TouchableOpacity,
-} from 'react-native';
+// PatientMedicationCalendar.js
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { databases, Query } from '../../lib/appwrite';
-import { useGlobalContext } from '../../context/GlobalProvider';
+import { databases, Query } from '../../lib/appwrite'; // Adjust the import path as needed
+import { useGlobalContext } from '../../context/GlobalProvider'; // Adjust the import path as needed
 import { Agenda } from 'react-native-calendars';
 import moment from 'moment';
 import { Ionicons } from '@expo/vector-icons';
 import MedicationItem from '../../components/MedicationItem';
+import * as Notifications from 'expo-notifications';
 
+// Define action identifiers and category
+const TAKEN_ACTION = 'taken';
+const NOT_TAKEN_ACTION = 'not_taken';
+const CATEGORY_ID = 'medicationReminder';
 
-// const MedicationItem = memo(({ item }) => (
-//     <View style={styles.itemContainer}>
-//         <Text style={styles.medicineName}>{item?.medicineName}</Text>
-//         <Text style={styles.dosage}>
-//             Dosage: {item?.dosage}
-//         </Text>
-//         <Text style={styles.timeText}>Time: {item?.time}</Text>
-//         <Text style={styles.dateRange}>
-//             {item?.formattedStartDate} - {item?.formattedEndDate}
-//         </Text>
-//     </View>
-// ), (prevProps, nextProps) => prevProps.item === nextProps.item);
-
-const PatientMedicationCalender = () => {
+const PatientMedicationCalendar = () => {
     const { user } = useGlobalContext();
 
     const [medications, setMedications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [items, setItems] = useState({});
     const [refreshing, setRefreshing] = useState(false);
+    const [intakeRecords, setIntakeRecords] = useState({});
 
     useEffect(() => {
-        init();
+        registerForPushNotificationsAsync()
+            .then(registerNotificationCategory) // Register categories after permissions
+            .then(init);
+
+        const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
+            const { notification, actionIdentifier } = response;
+            const { data } = notification.request.content;
+
+            const medicationId = data.medicationId;
+            const date = data.date;
+            const time = data.time;
+
+            if (actionIdentifier === TAKEN_ACTION) {
+                // Update intake status to 'taken'
+                updateIntakeRecord(medicationId, date, time, 'taken');
+            } else if (actionIdentifier === NOT_TAKEN_ACTION) {
+                // Update intake status to 'not_taken'
+                updateIntakeRecord(medicationId, date, time, 'not_taken');
+            } else {
+                // Handle default notification tap if needed
+                console.log('Default notification tap');
+            }
+        });
+
+        return () => {
+            Notifications.removeNotificationSubscription(responseListener);
+        };
     }, []);
 
-    const refetch = async () => {
-        try {
-            setRefreshing(true);
-            await init();
-        } catch (error) {
-            console.error('Error during refetch:', error);
-        } finally {
-            setRefreshing(false);
+    /**
+     * Registers the device for push notifications.
+     */
+    const registerForPushNotificationsAsync = async () => {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+
+        if (existingStatus !== 'granted') {
+            const { status } = await Notifications.requestPermissionsAsync();
+            finalStatus = status;
+        }
+
+        if (finalStatus !== 'granted') {
+            Alert.alert('Permission Required', 'Failed to get push token for notifications!');
+            return;
         }
     };
 
-    const onRefresh = useCallback(() => {
-        refetch();
-    }, []);
+    /**
+     * Registers notification categories and actions.
+     */
+    const registerNotificationCategory = async () => {
+        await Notifications.setNotificationCategoryAsync(CATEGORY_ID, [
+            {
+                identifier: TAKEN_ACTION,
+                buttonTitle: 'Taken',
+                options: {
+                    foreground: false, // Prevents the app from opening
+                },
+            },
+            {
+                identifier: NOT_TAKEN_ACTION,
+                buttonTitle: 'Not Taken',
+                options: {
+                    foreground: false, // Prevents the app from opening
+                },
+            },
+        ]);
+    };
 
+    /**
+     * Initializes the component by fetching medications and intake records.
+     */
     const init = async () => {
         try {
             setLoading(true);
-            const dbResponse = await databases.listDocuments(
-                'HealthManagementDatabaseId', // Replace with actual Database ID
-                'MedicationsCollectionId',    // Replace with actual Collection ID
+            // Cancel all existing notifications to prevent duplicates
+            await Notifications.cancelAllScheduledNotificationsAsync();
+
+            // Fetch medications from the database
+            const medResponse = await databases.listDocuments(
+                'HealthManagementDatabaseId',                 // Replace with your actual Database ID
+                'MedicationsCollectionId',                    // Replace with your Medications Collection ID
                 [Query.equal('userMedication', user.$id)]
             );
-            const fetchedMedications = dbResponse.documents || [];
+            const fetchedMedications = medResponse.documents || [];
             setMedications(fetchedMedications);
-            processMedications(fetchedMedications);
+
+            // Fetch intake records
+            const intakeResponse = await databases.listDocuments(
+                'HealthManagementDatabaseId',                 // Replace with your actual Database ID
+                'IntakeRecords',                              // Replace with your Intake Records Collection ID
+                [
+                    Query.equal('users', user.$id),
+                    // Optional: Add date range queries if needed
+                ]
+            );
+            const fetchedIntakeRecords = intakeResponse.documents || [];
+            const intakeMap = {};
+            fetchedIntakeRecords.forEach(record => {
+                const key = `${record.medications}_${record.date}_${record.time}`;
+                intakeMap[key] = record.status;
+            });
+            setIntakeRecords(intakeMap);
+
+            // Process medications to prepare agenda items and schedule notifications
+            await processMedications(fetchedMedications);
         } catch (error) {
             console.error('Error fetching patient data:', error);
+            Alert.alert('Error', 'Failed to fetch medication data.');
             setMedications([]);
             setItems({});
         } finally {
@@ -76,101 +142,174 @@ const PatientMedicationCalender = () => {
     };
 
     /**
-     * Utility: Add an event to items
+     * Refetches medication data with loading and error handling.
+     */
+    const refetch = async () => {
+        try {
+            setRefreshing(true);
+            await init();
+        } catch (error) {
+            console.error('Error during refetch:', error);
+            Alert.alert('Error', 'Failed to refresh data.');
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
+    /**
+     * Handles the refresh button press.
+     */
+    const onRefresh = useCallback(() => {
+        refetch();
+    }, [medications]);
+
+    /**
+     * Adds an event to the agenda items.
      */
     const addEvent = (itemsObj, dateStr, med, time) => {
         if (!itemsObj[dateStr]) {
             itemsObj[dateStr] = [];
         }
         itemsObj[dateStr].push({
-            id: `${med.$id}-${dateStr}-${time}`,
+            id: `${med.$id}`,
             medicineName: med.medicineName,
             dosage: med.dosage,
             time: time,
+            date: dateStr,
+            userId: user.$id, // Ensure userId is included for IntakeRecords
             formattedStartDate: moment(med.startDate).format('MMM DD, YYYY'),
             formattedEndDate: moment(med.endDate).format('MMM DD, YYYY'),
+            description: med.description || '', // **Added Description**
         });
     };
 
     /**
-     * For interval frequency (days), we need to check if a given day should have medication.
+     * Determines if a day is an interval day based on the interval value.
      */
     const isIntervalDay = (dayIndex, intervalValue) => {
-        // If dayIndex starts from 0 at startDate, medication day if dayIndex % intervalValue == 0
         return (dayIndex % intervalValue) === 0;
     };
 
     /**
-     * Process medications based on their frequency and populate the agenda items.
+     * Schedules a notification for a medication at a specific date and time.
      */
-    const processMedications = (medicationsList) => {
-        const updatedItems = {};
+    const scheduleMedicationNotification = async (med, date, time) => {
+        console.log(`Scheduling notification for: ${med.medicineName} on ${date} at ${time}`);
 
-        medicationsList.forEach((med) => {
+        const timeFormats = ["h:mm A", "H:mm"]; // Supports both 12-hour and 24-hour formats
+        const timeMoment = moment(time, timeFormats, true); // 'true' for strict parsing
+
+        if (!timeMoment.isValid()) {
+            console.error(`Invalid time format for medication ${med.medicineName}: ${time}`);
+            return null;
+        }
+
+        const hour = timeMoment.hour();
+        const minute = timeMoment.minute();
+
+        // Create the notification date by combining the date and time
+        let notificationDate = moment(date)
+            .set({ hour, minute, second: 0, millisecond: 0 })
+            .local(); // Ensure local time
+
+        console.log(`Initial Notification Date: ${notificationDate.format('YYYY-MM-DD HH:mm:ss')}`);
+
+        // Adjust if notification time is in the past
+        if (notificationDate.isSameOrBefore(moment())) {
+            notificationDate.add(1, 'day');
+            console.log(`Adjusted Notification Date (next day): ${notificationDate.format('YYYY-MM-DD HH:mm:ss')}`);
+        }
+
+        try {
+            const notificationId = await Notifications.scheduleNotificationAsync({
+                content: {
+                    title: 'Medication Reminder',
+                    body: `It's time to take your medicine: ${med.medicineName} (${med.dosage})`,
+                    sound: true,
+                    priority: Notifications.AndroidNotificationPriority.HIGH,
+                    categoryIdentifier: CATEGORY_ID, // Assign the category
+                    data: {
+                        medicationId: med.$id,
+                        date: date,
+                        time: time,
+                        description: med.description || '', // **Include Description in Notification Data (Optional)**
+                    },
+                },
+                trigger: {
+                    date: notificationDate.toDate(),
+                },
+            });
+            console.log(`Scheduled notification ID: ${notificationId} at ${notificationDate.format('YYYY-MM-DD HH:mm:ss')}`);
+            return notificationId;
+        } catch (error) {
+            console.error('Error scheduling notification:', error);
+            return null;
+        }
+    };
+
+    /**
+     * Processes the medication list and schedules notifications accordingly.
+     */
+    const processMedications = async (medicationsList) => {
+        const updatedItems = {};
+        const defaultTime = "08:00"; // Define default time here
+
+        for (const med of medicationsList) {
             const start = moment(med.startDate).startOf('day');
-            const end = moment(med.endDate).startOf('day');
+            const end = moment(med.endDate).endOf('day');
 
             const frequency = med.frequency;
-            // Use provided times or fallback
-            let times = Array.isArray(med.times) && med.times.length > 0 ? med.times : null;
-            const defaultTime = "08:00";
+            let times = Array.isArray(med.times) && med.times.length > 0 ? med.times : [defaultTime];
 
-            // Convert specificDays to a consistent format
             const specificDays = Array.isArray(med.specificDays)
                 ? med.specificDays.map(d => d.toLowerCase())
                 : [];
 
             switch (frequency) {
                 case 'daily': {
-                    // Daily frequency: take every day
-                    let dailyTimesCount = med.dailyTimes || (times ? times.length : 1);
-                    let dailyTimesArray = times ? times : Array(dailyTimesCount).fill(defaultTime);
-
-                    const current = start.clone();
-                    while (current.isSameOrBefore(end)) {
-                        const dateStr = current.format('YYYY-MM-DD');
-                        dailyTimesArray.forEach((t) => {
+                    for (const t of times) {
+                        const current = start.clone();
+                        while (current.isSameOrBefore(end)) {
+                            const dateStr = current.format('YYYY-MM-DD');
                             addEvent(updatedItems, dateStr, med, t);
-                        });
-                        current.add(1, 'day');
+                            await scheduleMedicationNotification(med, dateStr, t);
+                            current.add(1, 'day');
+                        }
                     }
                     break;
                 }
 
                 case 'interval': {
-                    // Interval can be hours or days
                     const intervalType = med.intervalType;
                     const intervalValue = med.intervalValue || 1;
 
                     if (intervalType === 'hours') {
-                        // For hours, start from the first provided time in times[], or default if none provided
-                        const initialTime = times ? times[0] : defaultTime;
-                        // Construct a starting datetime from startDate with initialTime
+                        const initialTime = times[0] || defaultTime;
                         let startDateTime = moment(med.startDate);
                         const [hour, minute] = initialTime.split(':').map(Number);
-                        startDateTime.set({ hour, minute, second: 0 });
+                        startDateTime.set({ hour, minute, second: 0, millisecond: 0 });
 
                         let current = startDateTime.clone();
-                        while (current.isSameOrBefore(end, 'day') || current.isSameOrBefore(end)) {
+                        while (current.isSameOrBefore(end)) {
                             const dateStr = current.format('YYYY-MM-DD');
-                            const timeStr = current.format('HH:mm');
+                            const timeStr = current.format('h:mm A');
                             addEvent(updatedItems, dateStr, med, timeStr);
+                            await scheduleMedicationNotification(med, dateStr, timeStr);
                             current.add(intervalValue, 'hours');
-                            // Stop if we exceed the end date
-                            if (current.isAfter(end.endOf('day'))) break;
+                            if (current.isAfter(end)) break;
                         }
                     } else if (intervalType === 'days') {
-                        // Every X days
                         let dayIndex = 0;
                         let current = start.clone();
-                        let dayTimes = times ? times : [defaultTime];
+                        const dayTimes = times.length > 0 ? times : [defaultTime];
 
                         while (current.isSameOrBefore(end)) {
                             if (isIntervalDay(dayIndex, intervalValue)) {
                                 const dateStr = current.format('YYYY-MM-DD');
-                                dayTimes.forEach((t) => {
+                                for (const t of dayTimes) {
                                     addEvent(updatedItems, dateStr, med, t);
-                                });
+                                    await scheduleMedicationNotification(med, dateStr, t);
+                                }
                             }
                             current.add(1, 'day');
                             dayIndex++;
@@ -180,16 +319,16 @@ const PatientMedicationCalender = () => {
                 }
 
                 case 'specificDays': {
-                    // Certain weekdays only
-                    const dayTimes = times ? times : [defaultTime];
+                    const dayTimes = times.length > 0 ? times : [defaultTime];
                     const current = start.clone();
                     while (current.isSameOrBefore(end)) {
                         const weekday = current.format('dddd').toLowerCase();
                         if (specificDays.includes(weekday)) {
                             const dateStr = current.format('YYYY-MM-DD');
-                            dayTimes.forEach((t) => {
+                            for (const t of dayTimes) {
                                 addEvent(updatedItems, dateStr, med, t);
-                            });
+                                await scheduleMedicationNotification(med, dateStr, t);
+                            }
                         }
                         current.add(1, 'day');
                     }
@@ -197,7 +336,6 @@ const PatientMedicationCalender = () => {
                 }
 
                 case 'cyclic': {
-                    // Cycle of intakeDays then pauseDays
                     const intakeDays = med.cyclicIntakeDays || 0;
                     const pauseDays = med.cyclicPauseDays || 0;
                     const cycleLength = intakeDays + pauseDays;
@@ -207,7 +345,7 @@ const PatientMedicationCalender = () => {
                         break;
                     }
 
-                    let dayTimes = times ? times : [defaultTime];
+                    const dayTimes = times.length > 0 ? times : [defaultTime];
                     let current = start.clone();
                     let dayIndex = 0;
 
@@ -215,9 +353,10 @@ const PatientMedicationCalender = () => {
                         const dayInCycle = dayIndex % cycleLength;
                         if (dayInCycle < intakeDays) {
                             const dateStr = current.format('YYYY-MM-DD');
-                            dayTimes.forEach((t) => {
+                            for (const t of dayTimes) {
                                 addEvent(updatedItems, dateStr, med, t);
-                            });
+                                await scheduleMedicationNotification(med, dateStr, t);
+                            }
                         }
                         current.add(1, 'day');
                         dayIndex++;
@@ -235,22 +374,42 @@ const PatientMedicationCalender = () => {
                     break;
                 }
             }
-        });
+        }
 
         // Sort events by time for each day
         Object.keys(updatedItems).forEach((date) => {
             updatedItems[date].sort((a, b) => {
-                return moment(a.time, 'HH:mm').diff(moment(b.time, 'HH:mm'));
+                return moment(a.time, 'h:mm A').diff(moment(b.time, 'h:mm A'));
             });
         });
 
         setItems(updatedItems);
     };
 
+    /**
+     * Renders each medication item in the agenda.
+     */
     const renderItem = useCallback((item) => {
-        return <MedicationItem item={item} />;
-    }, []);
+        const key = `${item.id}_${item.date}_${item.time}`;
+        const intakeStatus = intakeRecords[key] || 'pending';
 
+        return (
+            <MedicationItem
+                key={key}
+                item={{
+                    ...item,
+                    intakeStatus,
+                    userId: user.$id,
+                    description: item.description, // **Pass Description to MedicationItem**
+                }}
+                onStatusUpdate={updateIntakeRecord}
+            />
+        );
+    }, [intakeRecords]);
+
+    /**
+     * Renders the view when there are no medications on a selected date.
+     */
     const renderEmptyDate = useCallback(() => {
         return (
             <View style={styles.emptyDateContainer}>
@@ -258,6 +417,71 @@ const PatientMedicationCalender = () => {
             </View>
         );
     }, []);
+
+    /**
+     * Updates the intakeRecords state when a medication status is updated.
+     */
+    const updateIntakeRecord = async (medicationId, date, time, status) => {
+        try {
+            // Format the date and time to match the documentId format
+            const formattedDate = moment(date).format('YYYYMMDD');
+            const formattedTime = moment(time, ['h:mm A', 'H:mm']).format('HHmm');
+
+            const documentId = `${medicationId}-${formattedDate}-${formattedTime}`;
+
+            // Check if document exists
+            let documentExists = false;
+            try {
+                await databases.getDocument(
+                    'HealthManagementDatabaseId', // Replace with your actual Database ID
+                    'IntakeRecords',             // Replace with your Intake Records Collection ID
+                    documentId
+                );
+                documentExists = true;
+            } catch (error) {
+                if (error.code === 404) {
+                    documentExists = false;
+                } else {
+                    throw error;
+                }
+            }
+
+            if (documentExists) {
+                await databases.updateDocument(
+                    'HealthManagementDatabaseId',
+                    'IntakeRecords',
+                    documentId,
+                    { status }
+                );
+            } else {
+                await databases.createDocument(
+                    'HealthManagementDatabaseId',
+                    'IntakeRecords',
+                    documentId,
+                    {
+                        medications: medicationId,
+                        users: user.$id,
+                        date: formattedDate,
+                        time: formattedTime,
+                        status,
+                    }
+                );
+            }
+
+            // Update local state
+            const key = `${medicationId}_${date}_${time}`;
+            setIntakeRecords(prev => ({
+                ...prev,
+                [key]: status,
+            }));
+
+            // Optionally, provide user feedback
+            Alert.alert('Success', `Marked as ${status === 'taken' ? 'Taken' : 'Not Taken'}`);
+        } catch (error) {
+            console.error('Error updating intake status:', error);
+            Alert.alert('Error', 'Failed to update intake status. Please try again.');
+        }
+    };
 
     if (loading && !refreshing) {
         return (
@@ -311,37 +535,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    itemContainer: {
-        backgroundColor: '#ffffff',
-        padding: 15,
-        marginRight: 10,
-        marginTop: 17,
-        borderRadius: 8,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 3,
-    },
-    medicineName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 5,
-        color: '#333333',
-    },
-    dosage: {
-        fontSize: 14,
-        marginBottom: 5,
-        color: '#555555',
-    },
-    timeText: {
-        fontSize: 14,
-        marginBottom: 5,
-        color: '#555555',
-    },
-    dateRange: {
-        fontSize: 12,
-        color: '#777777',
-    },
     emptyDateContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -388,4 +581,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default PatientMedicationCalender;
+export default PatientMedicationCalendar;

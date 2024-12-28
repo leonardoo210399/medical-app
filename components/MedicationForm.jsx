@@ -15,7 +15,6 @@ import FormField from "./FormField"; // Adjust the import path as necessary
 import Icon from 'react-native-vector-icons/Ionicons'; // Ensure Ionicons is installed
 import DateTimePicker from "react-native-modal-datetime-picker";
 
-
 const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
   // State management
   const [formData, setFormData] = useState({
@@ -32,6 +31,7 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
     times: [], // Array of formatted time strings e.g., "08:00 AM"
     dosage: "",
     onDemand: false,
+    description: "", // New field added
   });
 
   const [errors, setErrors] = useState({});
@@ -40,6 +40,13 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
 
   // Function to update form fields
   const updateField = (field, value) => {
+    // If the field is description, enforce max length
+    if (field === "description") {
+      if (value.length > 1000) {
+        Alert.alert("Character Limit", "Description cannot exceed 1000 characters.");
+        return;
+      }
+    }
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear errors for the field as user modifies it
     setErrors((prev) => ({ ...prev, [field]: null }));
@@ -81,6 +88,9 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
     if (formData.frequency !== "onDemand" && formData.times.length === 0) {
       newErrors.times = "Please add at least one time.";
     }
+    if (formData.description.length > 1000) {
+      newErrors.description = "Description cannot exceed 1000 characters.";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -104,8 +114,8 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
   const handleToggleSpecificDay = (day) => {
     setFormData((prev) => {
       const updatedDays = prev.specificDays.includes(day)
-        ? prev.specificDays.filter((d) => d !== day)
-        : [...prev.specificDays, day];
+          ? prev.specificDays.filter((d) => d !== day)
+          : [...prev.specificDays, day];
       return { ...prev, specificDays: updatedDays };
     });
     // Clear specificDays error if any
@@ -138,6 +148,7 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
         frequency: formData.frequency,
         dosage: formData.dosage,
         onDemand: formData.onDemand,
+        description: formData.description, // Include description
         userMedication: patient?.users.$id,
       };
 
@@ -178,6 +189,7 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
         times: [],
         dosage: "",
         onDemand: false,
+        description: "", // Reset description
       });
       setErrors({});
     } catch (error) {
@@ -189,247 +201,261 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalBackground}>
-        <View style={styles.modalContainer}>
-          <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-            <Text style={styles.title}>Add Medication</Text>
+      <Modal visible={visible} animationType="slide" transparent>
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+              <Text style={styles.title}>Add Medication</Text>
 
-            {/* Medicine Name */}
-            <FormField
-              title="Medicine Name *"
-              value={formData.medicineName}
-              placeholder="Enter medicine name"
-              handleChangeText={(text) => updateField("medicineName", text)}
-              type="string"
-              error={errors.medicineName}
-            />
-
-            {/* Start Date */}
-            <FormField
-              title="Start Date *"
-              value={formData.startDate}
-              placeholder="Select start date"
-              handleChangeText={(date) => updateField("startDate", date)}
-              type="date"
-              error={errors.startDate}
-            />
-
-            {/* End Date */}
-            <FormField
-              title="End Date *"
-              value={formData.endDate}
-              placeholder="Select end date"
-              handleChangeText={(date) => updateField("endDate", date)}
-              type="date"
-              error={errors.endDate}
-            />
-
-            {/* Frequency Picker */}
-            <FormField
-              title="Frequency *"
-              value={formData.frequency}
-              handleChangeText={(value) => updateField("frequency", value)}
-              type="dropdown"
-              options={[
-                { label: "Daily, X times a day", value: "daily" },
-                { label: "Interval (X hours/days)", value: "interval" },
-                { label: "Specific days of the week", value: "specificDays" },
-                { label: "Cyclic mode (X days intake/pause)", value: "cyclic" },
-                { label: "On demand (no reminders)", value: "onDemand" },
-              ]}
-            />
-
-            {/* Conditional Frequency Fields */}
-            {formData.frequency === "daily" && (
+              {/* Medicine Name */}
               <FormField
-                title="Number of times a day *"
-                value={formData.dailyTimes}
-                placeholder="Enter number"
-                handleChangeText={(text) => updateField("dailyTimes", text)}
-                type="number"
-                error={errors.dailyTimes}
+                  title="Medicine Name *"
+                  value={formData.medicineName}
+                  placeholder="Enter medicine name"
+                  handleChangeText={(text) => updateField("medicineName", text)}
+                  type="string"
+                  error={errors.medicineName}
               />
-            )}
 
-            {formData.frequency === "interval" && (
-              <>
-                <FormField
-                  title="Interval Type *"
-                  value={formData.intervalType}
-                  handleChangeText={(value) => updateField("intervalType", value)}
+              {/* Start Date */}
+              <FormField
+                  title="Start Date *"
+                  value={formData.startDate}
+                  placeholder="Select start date"
+                  handleChangeText={(date) => updateField("startDate", date)}
+                  type="date"
+                  error={errors.startDate}
+              />
+
+              {/* End Date */}
+              <FormField
+                  title="End Date *"
+                  value={formData.endDate}
+                  placeholder="Select end date"
+                  handleChangeText={(date) => updateField("endDate", date)}
+                  type="date"
+                  error={errors.endDate}
+              />
+
+              {/* Frequency Picker */}
+              <FormField
+                  title="Frequency *"
+                  value={formData.frequency}
+                  handleChangeText={(value) => updateField("frequency", value)}
                   type="dropdown"
                   options={[
-                    { label: "Every X hours", value: "hours" },
-                    { label: "Every X days", value: "days" },
+                    { label: "Daily, X times a day", value: "daily" },
+                    { label: "Interval (X hours/days)", value: "interval" },
+                    { label: "Specific days of the week", value: "specificDays" },
+                    { label: "Cyclic mode (X days intake/pause)", value: "cyclic" },
+                    { label: "On demand (no reminders)", value: "onDemand" },
                   ]}
-                />
-                <FormField
-                  title={`Interval (${formData.intervalType}) *`}
-                  value={formData.intervalValue}
-                  placeholder={`Enter interval in ${formData.intervalType}`}
-                  handleChangeText={(text) => updateField("intervalValue", text)}
-                  type="number"
-                  error={errors.intervalValue}
-                />
-              </>
-            )}
-
-            {formData.frequency === "specificDays" && (
-              <View style={styles.specificDaysContainer}>
-                <Text style={styles.label}>Select Days *</Text>
-                <View style={styles.daysContainer}>
-                  {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
-                    <TouchableOpacity
-                      key={day}
-                      onPress={() => handleToggleSpecificDay(day)}
-                      style={[
-                        styles.dayButton,
-                        formData.specificDays.includes(day) && styles.selectedDayButton,
-                      ]}
-                      accessibilityLabel={`Select ${day}`}
-                      accessibilityRole="button"
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          formData.specificDays.includes(day) && styles.selectedDayText,
-                        ]}
-                      >
-                        {day.slice(0, 3)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                {errors.specificDays && <Text style={styles.errorText}>{errors.specificDays}</Text>}
-              </View>
-            )}
-
-            {formData.frequency === "cyclic" && (
-              <>
-                <FormField
-                  title="Intake Days *"
-                  value={formData.cyclicIntakeDays}
-                  placeholder="Enter number of intake days"
-                  handleChangeText={(text) => updateField("cyclicIntakeDays", text)}
-                  type="number"
-                  error={errors.cyclicIntakeDays}
-                />
-                <FormField
-                  title="Pause Days *"
-                  value={formData.cyclicPauseDays}
-                  placeholder="Enter number of pause days"
-                  handleChangeText={(text) => updateField("cyclicPauseDays", text)}
-                  type="number"
-                  error={errors.cyclicPauseDays}
-                />
-              </>
-            )}
-
-            {formData.frequency === "onDemand" && (
-              <FormField
-                title="On Demand?"
-                value={formData.onDemand}
-                handleChangeText={(value) => updateField("onDemand", value)}
-                type="boolean"
               />
-            )}
 
-            {/* Times */}
-            {formData.frequency !== "onDemand" && (
-              <View style={styles.timesContainer}>
-                <Text style={styles.label}>Times *</Text>
-                {errors.times && <Text style={styles.errorText}>{errors.times}</Text>}
-                <FlatList
-                  data={formData.times}
-                  keyExtractor={(item, index) => `${item}-${index}`}
-                  renderItem={({ item }) => (
-                    <View style={styles.timeItemContainer}>
-                      <Text style={styles.timeItem}>{item}</Text>
-                      <TouchableOpacity
-                        onPress={() => handleRemoveTime(item)}
-                        style={styles.removeTimeButton}
-                        accessibilityLabel={`Remove time ${item}`}
-                        accessibilityRole="button"
-                      >
-                        <Icon name="close-circle" size={24} color="#ff5c5c" />
-                      </TouchableOpacity>
+              {/* Conditional Frequency Fields */}
+              {formData.frequency === "daily" && (
+                  <FormField
+                      title="Number of times a day *"
+                      value={formData.dailyTimes}
+                      placeholder="Enter number"
+                      handleChangeText={(text) => updateField("dailyTimes", text)}
+                      type="number"
+                      error={errors.dailyTimes}
+                  />
+              )}
+
+              {formData.frequency === "interval" && (
+                  <>
+                    <FormField
+                        title="Interval Type *"
+                        value={formData.intervalType}
+                        handleChangeText={(value) => updateField("intervalType", value)}
+                        type="dropdown"
+                        options={[
+                          { label: "Every X hours", value: "hours" },
+                          { label: "Every X days", value: "days" },
+                        ]}
+                    />
+                    <FormField
+                        title={`Interval (${formData.intervalType}) *`}
+                        value={formData.intervalValue}
+                        placeholder={`Enter interval in ${formData.intervalType}`}
+                        handleChangeText={(text) => updateField("intervalValue", text)}
+                        type="number"
+                        error={errors.intervalValue}
+                    />
+                  </>
+              )}
+
+              {formData.frequency === "specificDays" && (
+                  <View style={styles.specificDaysContainer}>
+                    <Text style={styles.label}>Select Days *</Text>
+                    <View style={styles.daysContainer}>
+                      {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
+                          <TouchableOpacity
+                              key={day}
+                              onPress={() => handleToggleSpecificDay(day)}
+                              style={[
+                                styles.dayButton,
+                                formData.specificDays.includes(day) && styles.selectedDayButton,
+                              ]}
+                              accessibilityLabel={`Select ${day}`}
+                              accessibilityRole="button"
+                          >
+                            <Text
+                                style={[
+                                  styles.dayText,
+                                  formData.specificDays.includes(day) && styles.selectedDayText,
+                                ]}
+                            >
+                              {day.slice(0, 3)}
+                            </Text>
+                          </TouchableOpacity>
+                      ))}
                     </View>
-                  )}
-                  horizontal
-                  contentContainerStyle={styles.timesList}
-                  showsHorizontalScrollIndicator={false}
-                />
+                    {errors.specificDays && <Text style={styles.errorText}>{errors.specificDays}</Text>}
+                  </View>
+              )}
+
+              {formData.frequency === "cyclic" && (
+                  <>
+                    <FormField
+                        title="Intake Days *"
+                        value={formData.cyclicIntakeDays}
+                        placeholder="Enter number of intake days"
+                        handleChangeText={(text) => updateField("cyclicIntakeDays", text)}
+                        type="number"
+                        error={errors.cyclicIntakeDays}
+                    />
+                    <FormField
+                        title="Pause Days *"
+                        value={formData.cyclicPauseDays}
+                        placeholder="Enter number of pause days"
+                        handleChangeText={(text) => updateField("cyclicPauseDays", text)}
+                        type="number"
+                        error={errors.cyclicPauseDays}
+                    />
+                  </>
+              )}
+
+              {formData.frequency === "onDemand" && (
+                  <FormField
+                      title="On Demand?"
+                      value={formData.onDemand}
+                      handleChangeText={(value) => updateField("onDemand", value)}
+                      type="boolean"
+                  />
+              )}
+
+              {/* Times */}
+              {formData.frequency !== "onDemand" && (
+                  <View style={styles.timesContainer}>
+                    <Text style={styles.label}>Times *</Text>
+                    {errors.times && <Text style={styles.errorText}>{errors.times}</Text>}
+                    <FlatList
+                        data={formData.times}
+                        keyExtractor={(item, index) => `${item}-${index}`}
+                        renderItem={({ item }) => (
+                            <View style={styles.timeItemContainer}>
+                              <Text style={styles.timeItem}>{item}</Text>
+                              <TouchableOpacity
+                                  onPress={() => handleRemoveTime(item)}
+                                  style={styles.removeTimeButton}
+                                  accessibilityLabel={`Remove time ${item}`}
+                                  accessibilityRole="button"
+                              >
+                                <Icon name="close-circle" size={24} color="#ff5c5c" />
+                              </TouchableOpacity>
+                            </View>
+                        )}
+                        horizontal
+                        contentContainerStyle={styles.timesList}
+                        showsHorizontalScrollIndicator={false}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setTimePickerVisible(true)}
+                        style={styles.addTimeButton}
+                        accessibilityLabel="Add Time"
+                        accessibilityRole="button"
+                    >
+                      <Icon name="add-circle" size={36} color="#007BFF" />
+                    </TouchableOpacity>
+
+                    {/* Time Picker */}
+                    <DateTimePicker
+                        isVisible={isTimePickerVisible}
+                        mode="time"
+                        onConfirm={(time) => {
+                          handleAddTime(time);
+                          setTimePickerVisible(false);
+                        }}
+                        onCancel={() => setTimePickerVisible(false)}
+                    />
+                  </View>
+              )}
+
+              {/* Dosage */}
+              <FormField
+                  title="Dosage *"
+                  value={formData.dosage}
+                  placeholder="Enter dosage"
+                  handleChangeText={(text) => updateField("dosage", text)}
+                  type="string"
+                  error={errors.dosage}
+              />
+
+              {/* Description */}
+              <FormField
+                  title="Description"
+                  value={formData.description}
+                  placeholder="Enter additional information (max 1000 characters)"
+                  handleChangeText={(text) => updateField("description", text)}
+                  type="multiline" // Ensure FormField can handle multiline input
+                  maxLength={1000}
+                  error={errors.description}
+                  // Optionally, you can add a character count
+                  additionalComponent={
+                    <Text style={styles.charCount}>{formData.description.length}/1000</Text>
+                  }
+              />
+
+              {/* Submit and Cancel */}
+              <View style={styles.buttonContainer}>
                 <TouchableOpacity
-                  onPress={() => setTimePickerVisible(true)}
-                  style={styles.addTimeButton}
-                  accessibilityLabel="Add Time"
-                  accessibilityRole="button"
+                    onPress={handleSubmit}
+                    style={[styles.submitButton, isSubmitting && styles.disabledButton]}
+                    disabled={isSubmitting}
+                    accessibilityLabel="Submit Medication"
+                    accessibilityRole="button"
                 >
-                  <Icon name="add-circle" size={36} color="#007BFF" />
+                  {isSubmitting ? (
+                      <ActivityIndicator color="#fff" />
+                  ) : (
+                      <Text style={styles.buttonText}>Submit</Text>
+                  )}
                 </TouchableOpacity>
-
-                {/* Time Picker */}
-                <DateTimePicker
-                  isVisible={isTimePickerVisible}
-                  mode="time"
-                  onConfirm={(time) => {
-                    handleAddTime(time);
-                    setTimePickerVisible(false);
-                  }}
-                  onCancel={() => setTimePickerVisible(false)}
-                />
+                <TouchableOpacity
+                    onPress={onClose}
+                    style={styles.cancelButton}
+                    accessibilityLabel="Cancel"
+                    accessibilityRole="button"
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
               </View>
-            )}
-
-            {/* Dosage */}
-            <FormField
-              title="Dosage *"
-              value={formData.dosage}
-              placeholder="Enter dosage"
-              handleChangeText={(text) => updateField("dosage", text)}
-              type="string"
-              error={errors.dosage}
-            />
-
-            {/* Submit and Cancel */}
-            <View style={styles.buttonContainer}>
-            <TouchableOpacity
-                onPress={handleSubmit}
-                style={[styles.submitButton, isSubmitting && styles.disabledButton]}
-                disabled={isSubmitting}
-                accessibilityLabel="Submit Medication"
-                accessibilityRole="button"
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.buttonText}>Submit</Text>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={onClose}
-                style={styles.cancelButton}
-                accessibilityLabel="Cancel"
-                accessibilityRole="button"
-              >
-                <Text style={styles.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-              
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalBackground: { 
-    flex: 1, 
+  modalBackground: {
+    flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)", // Semi-transparent background
-    justifyContent: "center", 
-    padding: 20 
+    justifyContent: "center",
+    padding: 20
   },
   modalContainer: {
     backgroundColor: "#1e1e1e", // Dark background for contrast
@@ -440,45 +466,45 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingBottom: 20,
   },
-  title: { 
-    fontSize: 24, 
-    fontWeight: "bold", 
-    marginBottom: 20, 
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
     color: "#fff",
     textAlign: "center",
   },
-  label: { 
-    fontSize: 16, 
-    fontWeight: "bold", 
-    marginBottom: 5, 
+  label: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
     color: "#fff",
   },
   specificDaysContainer: {
     marginBottom: 15,
   },
-  daysContainer: { 
-    flexDirection: "row", 
-    flexWrap: "wrap", 
-    marginBottom: 5 
+  daysContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 5
   },
-  dayButton: { 
+  dayButton: {
     paddingVertical: 8,
-    paddingHorizontal: 12, 
-    borderRadius: 20, 
-    margin: 4, 
-    borderWidth: 1, 
-    borderColor: '#fff' 
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    margin: 4,
+    borderWidth: 1,
+    borderColor: '#fff'
   },
-  selectedDayButton: { 
-    backgroundColor: "#007BFF", 
-    borderColor: "#007BFF" 
+  selectedDayButton: {
+    backgroundColor: "#007BFF",
+    borderColor: "#007BFF"
   },
-  dayText: { 
-    fontWeight: "bold", 
-    color: '#fff' 
+  dayText: {
+    fontWeight: "bold",
+    color: '#fff'
   },
-  selectedDayText: { 
-    color: "#fff" 
+  selectedDayText: {
+    color: "#fff"
   },
   timesContainer: {
     marginBottom: 15,
@@ -487,17 +513,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 5,
   },
-  timeItemContainer: { 
-    flexDirection: "row", 
-    alignItems: "center", 
+  timeItemContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 10,
     backgroundColor: '#333',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
   },
-  timeItem: { 
-    fontSize: 16, 
+  timeItem: {
+    fontSize: 16,
     color: '#fff',
     marginRight: 8,
   },
@@ -538,6 +564,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  errorText: {
+    color: "#ff5c5c",
+    marginTop: 5,
+  },
+  charCount: {
+    alignSelf: 'flex-end',
+    color: '#ccc',
+    fontSize: 12,
+    marginTop: 4,
   },
 });
 

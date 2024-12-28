@@ -92,15 +92,15 @@ const TabLayout = () => {
                     }}
                 />
                 <Tabs.Screen
-                    name="patientProfile"
+                    name="patientMedicationProgress"
                     options={{
-                        title: "Profile",
+                        title: "Progress",
                         headerShown: false,
                         tabBarIcon: ({ color, focused }) => (
                             <TabIcon
-                                icon={icons.profile}
+                                icon={icons.pieChart}
                                 color={color}
-                                name="Profile"
+                                name="Progress"
                                 focused={focused}
                             />
                         ),

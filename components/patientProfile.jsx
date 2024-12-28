@@ -1,11 +1,11 @@
 import { View, Text, Image, TouchableOpacity, ScrollView } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView } from "react-native-safe-area-context";
-import { signOut } from "../../lib/appwrite";
+import { signOut } from "../lib/appwrite";
 import { router } from "expo-router";
-import { icons } from "../../constants";
-import { useGlobalContext } from "../../context/GlobalProvider";
-import FormField from "../../components/FormField";
+import { icons } from "../constants";
+import { useGlobalContext } from "../context/GlobalProvider";
+import FormField from "./FormField";
 
 const PatientProfile = () => {
     const { user, setUser, setIsLogged } = useGlobalContext();

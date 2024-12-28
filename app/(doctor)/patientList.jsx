@@ -1,3 +1,4 @@
+// PatientList.js
 import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -5,6 +6,8 @@ import {
   FlatList,
   TextInput,
   ActivityIndicator,
+  Alert,
+  StyleSheet,
 } from "react-native";
 import {
   getPatientCollection,
@@ -15,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import EditPatientDetails from "../../components/EditPatientDetails";
 import MedicationForm from "../../components/MedicationForm";
 import PatientCard from "../../components/PatientCard";
+import ScheduleFollowUpForm from "../../components/ScheduleFollowUpForm"; // Import the new form
 import debounce from "lodash.debounce";
 
 const PatientList = () => {
@@ -24,9 +28,13 @@ const PatientList = () => {
   const [loading, setLoading] = useState(true); // Loading state
   const [editPatientModalVisible, setEditPatientModalVisible] = useState(false); // Modal visibility
   const [patientMedicationModalVisible, setPatientMedicationModalVisible] =
-    useState(false); // Modal visibility
+      useState(false); // Modal visibility
   const [selectedPatient, setSelectedPatient] = useState(null); // Current patient for editing
   const [medications, setMedications] = useState([]); // Medications list
+
+  // New states for ScheduleFollowUpForm
+  const [scheduleFollowUpModalVisible, setScheduleFollowUpModalVisible] = useState(false);
+  const [selectedPatientForFollowUp, setSelectedPatientForFollowUp] = useState(null);
 
   useEffect(() => {
     // Fetch patients and medications on component mount
@@ -36,13 +44,13 @@ const PatientList = () => {
 
   // Optimized search filtering using debounce
   const handleSearch = useCallback(
-    debounce((query) => {
-      const filtered = db.filter((patient) =>
-        patient?.name?.toLowerCase().includes(query.toLowerCase())
-      );
-      setFilteredDb(filtered);
-    }, 300),
-    [db]
+      debounce((query) => {
+        const filtered = db.filter((patient) =>
+            patient?.name?.toLowerCase().includes(query.toLowerCase())
+        );
+        setFilteredDb(filtered);
+      }, 300),
+      [db]
   );
 
   useEffect(() => {
@@ -57,6 +65,7 @@ const PatientList = () => {
       setFilteredDb(dbResponse.documents || []); // Initialize filtered data
     } catch (error) {
       console.error("Error fetching patient data:", error);
+      Alert.alert("Error", "Failed to fetch patient data.");
     } finally {
       setLoading(false);
     }
@@ -68,6 +77,7 @@ const PatientList = () => {
       setMedications(medicationResponse.documents || []);
     } catch (error) {
       console.error("Error fetching medication data:", error);
+      Alert.alert("Error", "Failed to fetch medication data.");
     }
   };
 
@@ -84,26 +94,27 @@ const PatientList = () => {
 
       // Update state with the updated patient
       setDb((prevDb) =>
-        prevDb.map((patient) =>
-          patient.$id === updatedPatient.$id ? updatedPatient : patient
-        )
+          prevDb.map((patient) =>
+              patient.$id === updatedPatient.$id ? updatedPatient : patient
+          )
       );
       setFilteredDb((prevFilteredDb) =>
-        prevFilteredDb.map((patient) =>
-          patient.$id === updatedPatient.$id ? updatedPatient : patient
-        )
+          prevFilteredDb.map((patient) =>
+              patient.$id === updatedPatient.$id ? updatedPatient : patient
+          )
       );
 
       setEditPatientModalVisible(false);
     } catch (error) {
       console.error("Error updating patient details:", error);
+      Alert.alert("Error", "Failed to update patient details.");
     }
   };
 
   const handleAddMedications = (patient) => {
     // Filter medications by patient ID
     const patientMedications = medications.filter(
-      (med) => med.userMedication?.$id === patient.users.$id
+        (med) => med.userMedication?.$id === patient.users.$id
     );
     setSelectedPatient({
       ...patient,
@@ -112,67 +123,108 @@ const PatientList = () => {
     setPatientMedicationModalVisible(true);
   };
 
+  // New handler to schedule follow-up/dialysis
+  const handleScheduleFollowUp = (patient) => {
+    setSelectedPatientForFollowUp(patient);
+    setScheduleFollowUpModalVisible(true);
+  };
+
+  const handleCloseScheduleFollowUp = () => {
+    setSelectedPatientForFollowUp(null);
+    setScheduleFollowUpModalVisible(false);
+  };
+
+  const handleFollowUpSubmit = () => {
+    // After scheduling, you might want to refresh data or perform other actions
+    console.log("Follow-Up/Dialysis scheduled successfully");
+    fetchMedications(); // Example: Refresh medications if relevant
+    // Optionally, you can also refresh patients if needed
+    handleCloseScheduleFollowUp();
+  };
+
   return (
-    <SafeAreaView className="bg-black-100 p-4 flex-1">
-      <Text className="text-xl text-center mb-5 font-pbold text-secondary">
-        Patient List
-      </Text>
+      <SafeAreaView className="bg-black-100 p-4 flex-1" >
+        <Text className="text-xl text-center mb-5 font-pbold text-secondary">Patient List</Text>
 
-      <TextInput
-        className="bg-white rounded-xl px-4 py-3 mb-4 shadow"
-        placeholder="Search by name..."
-        placeholderTextColor="#CDCDE0"
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        accessibilityLabel="Search patients by name"
-      />
-
-      {loading ? (
-        <View className="flex justify-center items-center">
-          <ActivityIndicator size="large" color="#FF9C01" />
-        </View>
-      ) : (
-        <FlatList
-          data={filteredDb}
-          keyExtractor={(item) => item.$id}
-          renderItem={({ item }) => (
-            <PatientCard
-              patient={item}
-              onEdit={() => handleEditPatient(item)}
-              onMedication={() => handleAddMedications(item)}
-              // patientMedications={selectedPatient.medications}
-            />
-          )}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 20 }}
-          ListEmptyComponent={
-            <Text className="text-center text-gray-500 mt-5">
-              No patients found.
-            </Text>
-          }
+        <TextInput
+            className="bg-white rounded-xl px-4 py-3 mb-4 shadow"
+            placeholder="Search by name..."
+            placeholderTextColor="#CDCDE0"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            accessibilityLabel="Search patients by name"
         />
-      )}
 
-      <EditPatientDetails
-        visible={editPatientModalVisible}
-        patient={selectedPatient}
-        setPatient={setSelectedPatient}
-        onClose={() => setEditPatientModalVisible(false)}
-        onUpdate={handleUpdatePatient}
-      />
-      <MedicationForm
-        visible={patientMedicationModalVisible}
-        patient={selectedPatient}
-        onClose={() => {
-          setPatientMedicationModalVisible(false); // Close the modal
-        }}
-        onSubmit={() => {
-          console.log("Medication added successfully"); // Log success
-          fetchMedications(); // Refresh the medications list
-        }}
-      />
-    </SafeAreaView>
+        {loading ? (
+            <View className="flex justify-center items-center">
+              <ActivityIndicator size="large" color="#FF9C01" />
+            </View>
+        ) : (
+            <FlatList
+                data={filteredDb}
+                keyExtractor={(item) => item.$id}
+                renderItem={({ item }) => (
+                    <PatientCard
+                        patient={item}
+                        onEdit={() => handleEditPatient(item)}
+                        onMedication={() => handleAddMedications(item)}
+                        onScheduleFollowUp={() => handleScheduleFollowUp(item)} // Pass the new handler
+                    />
+                )}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={
+                  <Text className="text-center text-gray-500 mt-5">
+                    No patients found.
+                  </Text>
+                }
+            />
+        )}
+
+        {/* Edit Patient Details Modal */}
+        <EditPatientDetails
+            visible={editPatientModalVisible}
+            patient={selectedPatient}
+            setPatient={setSelectedPatient}
+            onClose={() => setEditPatientModalVisible(false)}
+            onUpdate={handleUpdatePatient}
+        />
+
+        {/* Medication Form Modal */}
+        <MedicationForm
+            visible={patientMedicationModalVisible}
+            patient={selectedPatient}
+            onClose={() => {
+              setPatientMedicationModalVisible(false); // Close the modal
+            }}
+            onSubmit={() => {
+              console.log("Medication added successfully"); // Log success
+              fetchMedications(); // Refresh the medications list
+            }}
+        />
+
+        {/* Schedule Follow-Up/Dialysis Modal */}
+        <ScheduleFollowUpForm
+            visible={scheduleFollowUpModalVisible}
+            onClose={handleCloseScheduleFollowUp}
+            patient={selectedPatientForFollowUp} // Pass the selected patient
+            onSubmit={handleFollowUpSubmit}
+        />
+      </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+
+});
 
 export default PatientList;
