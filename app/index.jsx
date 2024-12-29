@@ -57,7 +57,7 @@ export default function App() {
     // if (!loading && isLogged) return user.doctor?<Redirect href="/doctorHome" />:<Redirect href="/patientHome" />;
     if (!loading && isLogged) {
         if (user && typeof user.doctor !== "undefined") {
-            return user.doctor ? <Redirect href="/doctorHome"/> : <Redirect href="/patientHome"/>;
+            return user.doctor ? <Redirect href="/patientList"/> : <Redirect href="/patientHome"/>;
         }
         // Optionally handle the case where user is undefined or missing required properties
     }

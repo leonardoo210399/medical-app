@@ -43,6 +43,9 @@ const RootLayout = () => {
         <Stack.Screen name="(patient)" options={{ headerShown: false }} />
         <Stack.Screen name="(doctor)" options={{ headerShown: false }} />
         <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="medication/[patientId]" options={{ headerShown: false }} />
+        <Stack.Screen name="scheduleFollowUp/[patientId]" options={{ headerShown: false }} />
+        <Stack.Screen name="patientMedicationProgress/[patientId]" options={{ headerShown: false }} />
         <Stack.Screen name="patientProfileForm" options={{ headerShown: false }} />
         {/* <Stack.Screen name="search/[query]" options={{ headerShown: false }} /> */}
       </Stack>

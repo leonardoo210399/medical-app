@@ -1,115 +1,125 @@
 // PatientCard.js
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
-import CustomButton from "./CustomButton";
-import MedicationList from "./MedicationList";
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import FollowUpList from "./FollowUpList"; // Ensure Ionicons is installed
-// No need to import ScheduleFollowUpForm here since it's handled in PatientList
+import MedicationList from "./MedicationList";
+import FollowUpList from "./FollowUpList";
 
-const PatientCard = ({ patient, onEdit, onMedication, onScheduleFollowUp }) => {
-  // console.log(patient.users.$id);
-
+const PatientCard = ({ patient, onPress }) => {
   return (
-      <View
-          className="bg-white shadow-lg rounded-xl p-5 mb-5"
-          style={{ borderColor: "#FF8E01", borderWidth: 1 }}
+      <TouchableOpacity
+          onPress={onPress}
+          activeOpacity={0.8}
+          style={[styles.card, { borderColor: "#FF8E01", borderWidth: 1 }]}
+          accessibilityLabel={`Patient card for ${patient?.name || "Unknown"}`}
       >
-        <View className="flex-row items-center mb-4">
+        <View style={styles.header}>
           <Image
               source={{
                 uri: patient?.users?.avatar || "https://via.placeholder.com/150",
               }}
-              className="w-16 h-16 rounded-full mr-4"
+              style={styles.avatar}
           />
           <View>
-            <Text className="text-lg text-primary font-psemibold">
-              {patient?.name || "Unknown"}
-            </Text>
-            <Text className="text-sm font-pregular text-gray-100">
+            <Text style={styles.name}>{patient?.name || "Unknown"}</Text>
+            <Text style={styles.email}>
               {patient?.users?.email || "No Email"}
             </Text>
           </View>
         </View>
-        <View className="mb-2">
-          <Text className="text-sm font-plight">
-            <Text className="text-secondary-200">Age: </Text>
+        <View style={styles.details}>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Age: </Text>
             {patient?.age || "N/A"}
           </Text>
-          <Text className="text-sm font-plight">
-            <Text className="text-secondary-200">Gender: </Text>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Gender: </Text>
             {patient?.gender || "N/A"}
           </Text>
-          <Text className="text-sm font-plight">
-            <Text className="text-secondary-200">Height: </Text>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Height: </Text>
             {patient?.height || "N/A"} cm
           </Text>
-          <Text className="text-sm font-plight">
-            <Text className="text-secondary-200">Weight: </Text>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Weight: </Text>
             {patient?.weight || "N/A"} kg
           </Text>
-          <Text className="text-sm font-plight">
-            <Text className="text-secondary-200">Allergies: </Text>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Allergies: </Text>
             {patient?.allergies || "None"}
           </Text>
-          <Text className="text-sm font-plight">
-            <Text className="text-secondary-200">Comorbidities: </Text>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Comorbidities: </Text>
             {patient?.comorbidities?.length > 0
                 ? patient.comorbidities.join(", ")
                 : "None"}
           </Text>
           {patient?.comorbidities?.includes("Others") && (
-              <Text className="text-sm font-plight">
-                <Text className="text-secondary-200">Other Comorbidities: </Text>
+              <Text style={styles.detailText}>
+                <Text style={styles.detailLabel}>Other Comorbidities: </Text>
                 {patient?.otherComorbidities || "-"}
               </Text>
           )}
-          <Text className="text-sm font-plight">
-            <Text className="text-secondary-200">Dialysis: </Text>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Dialysis: </Text>
             {patient?.dialysis ? "Yes" : "No"}
           </Text>
-          <Text className="text-sm font-plight">
-            <Text className="text-secondary-200">Diagnosis: </Text>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Diagnosis: </Text>
             {patient?.confirmedDiagnosis || "-"}
           </Text>
         </View>
-        <View className="flex-row justify-between -ml-4">
-          <CustomButton
-              title={`Edit Patient \nDetails`}
-              handlePress={onEdit}
-              containerStyles="w-1/3 m-1 px-2"
-              textStyles="text-center text-sm"
-              accessibilityLabel="Edit Patient Details"
-          />
-          <CustomButton
-              title={`Add/Remove \nMedication`}
-              handlePress={onMedication}
-              containerStyles="w-1/3 m-1 px-2 !bg-gray-100"
-              textStyles="text-center text-sm"
-              accessibilityLabel="Add or Remove Medication"
-          />
-          <CustomButton
-              title={`Schedule \nFollow-Up/Dialysis`}
-              handlePress={onScheduleFollowUp}
-              containerStyles="w-1/3 m-1 px-2 !bg-green-500"
-              textStyles="text-center text-sm text-white"
-              accessibilityLabel="Schedule Follow-Up or Dialysis"
-              icon={<Ionicons name="calendar-outline" size={20} color="#fff" style={styles.buttonIcon} />}
-          />
-        </View>
-        <MedicationList
-            userID={patient.users.$id}
-        />
-        <FollowUpList
-            patientId={patient.users.$id}
-        />
-      </View>
+        {/*<MedicationList userID={patient.users.$id} />*/}
+        {/*<FollowUpList patientId={patient.users.$id} />*/}
+      </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  buttonIcon: {
-    marginRight: 5,
+  card: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginRight: 16,
+  },
+  name: {
+    fontSize: 18,
+    color: "#2C3A59",
+    fontWeight: "600",
+  },
+  email: {
+    fontSize: 14,
+    color: "#7F8FA6",
+    fontWeight: "400",
+  },
+  details: {
+    marginBottom: 16,
+  },
+  detailText: {
+    fontSize: 14,
+    color: "#7F8FA6",
+    fontWeight: "300",
+    marginBottom: 4,
+  },
+  detailLabel: {
+    color: "#FF8E01",
+    fontWeight: "500",
   },
 });
 

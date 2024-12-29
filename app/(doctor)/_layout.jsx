@@ -1,12 +1,12 @@
-import { StatusBar } from "expo-status-bar";
-import { Redirect, Tabs } from "expo-router";
-import { Image, Text, View } from "react-native";
+import {StatusBar} from "expo-status-bar";
+import {Redirect, Tabs} from "expo-router";
+import {Image, Text, View} from "react-native";
 
-import { icons } from "../../constants";
+import {icons} from "../../constants";
 // import { Loader } from "../../components";
-import { useGlobalContext } from "../../context/GlobalProvider";
+import {useGlobalContext} from "../../context/GlobalProvider";
 
-const TabIcon = ({ icon, color, name, focused }) => {
+const TabIcon = ({icon, color, name, focused}) => {
     return (
         <View className="flex items-center justify-center gap-2">
             <Image
@@ -17,7 +17,7 @@ const TabIcon = ({ icon, color, name, focused }) => {
             />
             <Text
                 className={`${focused ? "font-psemibold" : "font-pregular"} text-xs`}
-                style={{ color: color }}
+                style={{color: color}}
             >
                 {name}
             </Text>
@@ -46,26 +46,11 @@ const TabLayout = () => {
                 }}
             >
                 <Tabs.Screen
-                    name="doctorHome"
-                    options={{
-                        title: "Home",
-                        headerShown: false,
-                        tabBarIcon: ({ color, focused }) => (
-                            <TabIcon
-                                icon={icons.home}
-                                color={color}
-                                name="Home"
-                                focused={focused}
-                            />
-                        ),
-                    }}
-                />
-                <Tabs.Screen
                     name="patientList"
                     options={{
                         title: "patientList",
                         headerShown: false,
-                        tabBarIcon: ({ color, focused }) => (
+                        tabBarIcon: ({color, focused}) => (
                             <TabIcon
                                 icon={icons.list}
                                 color={color}
@@ -75,27 +60,27 @@ const TabLayout = () => {
                         ),
                     }}
                 />
-
                 <Tabs.Screen
-                    name="graph"
+                    name="doctorHome"
                     options={{
-                        title: "graph",
+                        title: "Home",
                         headerShown: false,
-                        tabBarIcon: ({ color, focused }) => (
+                        tabBarIcon: ({color, focused}) => (
                             <TabIcon
-                                icon={icons.plus}
+                                icon={icons.home}
                                 color={color}
-                                name="Create"
+                                name="Home"
                                 focused={focused}
                             />
                         ),
                     }}
                 />
 
+
             </Tabs>
 
             {/*<Loader isLoading={loading} />*/}
-            <StatusBar backgroundColor="#161622" style="light" />
+            <StatusBar backgroundColor="#161622" style="light"/>
         </>
     );
 };

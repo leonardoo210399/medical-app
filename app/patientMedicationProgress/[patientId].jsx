@@ -1,4 +1,4 @@
-// PatientMedicationProgress.jsx
+// app/patientMedicationProgress/[patientId].jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -10,45 +10,69 @@ import {
     ActivityIndicator,
     RefreshControl,
     TouchableOpacity,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PieChart } from 'react-native-chart-kit';
-import { useGlobalContext } from '../../context/GlobalProvider';
-import { databases } from '../../lib/appwrite'; // Ensure correct path
-import { Query } from 'appwrite'; // Import Query class
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { databases, getPatientDetails, Query } from '../../lib/appwrite'; // Ensure the path is correct
 import { parseISO, differenceInCalendarDays, addDays, format } from 'date-fns';
-import Ionicons from 'react-native-vector-icons/Ionicons'; // For Refresh Button Icon
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const screenWidth = Dimensions.get('window').width;
 
 // Define your database and collection IDs
-const DATABASE_ID = 'HealthManagementDatabaseId';
-const MEDICATIONS_COLLECTION_ID = 'MedicationsCollectionId';
-const INTAKE_RECORDS_COLLECTION_ID = 'IntakeRecords';
+const DATABASE_ID = 'HealthManagementDatabaseId'; // Replace with your actual Database ID
+const PATIENTS_COLLECTION_ID = 'PatientsCollectionId'; // Replace with your actual Patients Collection ID
+const MEDICATIONS_COLLECTION_ID = 'MedicationsCollectionId'; // Replace with your actual Medications Collection ID
+const INTAKE_RECORDS_COLLECTION_ID = 'IntakeRecords'; // Replace with your actual Intake Records Collection ID
 
 const PatientMedicationProgress = () => {
-    const { user } = useGlobalContext();
-    const userId = user?.$id; // Assuming Appwrite's user ID
+    const router = useRouter();
+    const { patientId } = useLocalSearchParams(); // Extract patientId from route params
 
+    // State variables
+    const [patientName, setPatientName] = useState(""); // State for patient name
     const [medications, setMedications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingPatient, setLoadingPatient] = useState(true); // Loading state for patient details
     const [error, setError] = useState(null);
     const [totalTaken, setTotalTaken] = useState(0);
     const [totalNotTaken, setTotalNotTaken] = useState(0);
     const [totalRemaining, setTotalRemaining] = useState(0);
     const [refreshing, setRefreshing] = useState(false); // State for RefreshControl
 
-    // Helper function to normalize status strings
-    const normalizeStatus = (status) => status.replace(/_/g, ' ').toLowerCase();
+    // Helper function to capitalize the first letter
+    const capitalizeFirstLetter = (string) => {
+        if (!string) return "";
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    };
 
-    // Fetch medications for the user
+    // Fetch patient details
+    const fetchPatientDetails = async () => {
+        try {
+            setLoadingPatient(true);
+            const patientDetails = await getPatientDetails(patientId);
+            // Assuming 'name' is a field in the patient document
+            const patientNameFetched = patientDetails.documents[0]?.name || "Unknown Patient";
+            setPatientName(patientNameFetched);
+        } catch (error) {
+            console.error("Error fetching patient details:", error);
+            Alert.alert("Error", "Failed to fetch patient details.");
+            setError("Failed to fetch patient details.");
+        } finally {
+            setLoadingPatient(false);
+        }
+    };
+
+    // Fetch medications for the patient
     const fetchMedications = async () => {
         try {
-            console.log('Fetching medications for user:', userId);
+            console.log('Fetching medications for patient:', patientId);
             const response = await databases.listDocuments(
                 DATABASE_ID,
                 MEDICATIONS_COLLECTION_ID,
-                [Query.equal('userMedication', userId)]
+                [Query.equal('userMedication', patientId)] // Ensure 'userMedication' is the correct field
             );
             console.log('Fetched Medications:', response.documents);
             return response.documents;
@@ -65,7 +89,7 @@ const PatientMedicationProgress = () => {
             const response = await databases.listDocuments(
                 DATABASE_ID,
                 INTAKE_RECORDS_COLLECTION_ID,
-                [Query.equal('medications', medicationId)]
+                [Query.equal('medications', medicationId)] // Ensure 'medications' is the correct field
             );
             console.log(`Fetched Intake Records for ${medicationId}:`, response.documents);
             return response.documents;
@@ -132,6 +156,9 @@ const PatientMedicationProgress = () => {
 
         return totalDoses;
     };
+
+    // Normalize status strings
+    const normalizeStatus = (status) => status.replace(/_/g, ' ').toLowerCase();
 
     // Process medications to include intake statistics
     const processMedications = async (fetchedMedications) => {
@@ -216,17 +243,18 @@ const PatientMedicationProgress = () => {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [userId]);
+    }, [patientId]);
 
     // Initial data load
     useEffect(() => {
-        if (userId) {
+        if (patientId) {
+            fetchPatientDetails(); // Fetch patient details
             loadData();
         } else {
-            setError('User not authenticated.');
+            setError('Patient ID not provided.');
             setLoading(false);
         }
-    }, [userId, loadData]);
+    }, [patientId, loadData]);
 
     // Handler for pull-to-refresh
     const onRefresh = useCallback(() => {
@@ -253,6 +281,34 @@ const PatientMedicationProgress = () => {
         decimalPlaces: 0,
     };
 
+    // Prepare aggregated data for the total pie chart
+    const aggregatedData = [
+        {
+            name: 'Taken',
+            count: totalTaken,
+            color: chartColors.taken,
+            legendFontColor: '#2C3A59',
+            legendFontSize: 12,
+        },
+        {
+            name: 'Not Taken',
+            count: totalNotTaken,
+            color: chartColors.notTaken,
+            legendFontColor: '#2C3A59',
+            legendFontSize: 12,
+        },
+        {
+            name: 'Remaining',
+            count: totalRemaining,
+            color: chartColors.remaining,
+            legendFontColor: '#2C3A59',
+            legendFontSize: 12,
+        },
+    ];
+
+    // Compute the total across all aggregated data
+    const totalOverallCount = aggregatedData.reduce((acc, cur) => acc + cur.count, 0);
+
     if (loading && !refreshing) { // Show loading indicator only during initial load
         return (
             <SafeAreaView style={styles.loadingContainer}>
@@ -265,41 +321,18 @@ const PatientMedicationProgress = () => {
         return (
             <SafeAreaView style={styles.errorContainer}>
                 <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity style={styles.refreshButton} onPress={loadData} accessibilityLabel="Refresh data" accessibilityRole="button">
+                <TouchableOpacity
+                    style={styles.refreshButton}
+                    onPress={loadData}
+                    accessibilityLabel="Refresh data"
+                    accessibilityRole="button"
+                >
                     <Ionicons name="refresh" size={24} color="#ffffff" />
                     <Text style={styles.refreshButtonText}>Refresh</Text>
                 </TouchableOpacity>
             </SafeAreaView>
         );
     }
-
-    // Prepare aggregated data for the total pie chart
-    const aggregatedData = [
-        {
-            name: 'Taken',
-            count: totalTaken,
-            color: chartColors.taken,
-            legendFontColor: '#000000',
-            legendFontSize: 12,
-        },
-        {
-            name: 'Not Taken',
-            count: totalNotTaken,
-            color: chartColors.notTaken,
-            legendFontColor: '#000000',
-            legendFontSize: 12,
-        },
-        {
-            name: 'Remaining',
-            count: totalRemaining,
-            color: chartColors.remaining,
-            legendFontColor: '#000000',
-            legendFontSize: 12,
-        },
-    ];
-
-    // Compute the total across all aggregated data
-    const totalOverallCount = aggregatedData.reduce((acc, cur) => acc + cur.count, 0);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -318,28 +351,30 @@ const PatientMedicationProgress = () => {
             >
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Medication Progress</Text>
+                    {loadingPatient ? (
+                        <ActivityIndicator size="small" color="#4CAF50" />
+                    ) : (
+                        <Text style={styles.headerTitle}>Medication Progress for {patientName}</Text>
+                    )}
                 </View>
 
                 {/* Aggregated Pie Chart */}
-                <View style={styles.chartCard}>
+                <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Overall Medication Progress</Text>
                     {totalOverallCount > 0 ? (
                         <>
-                            <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-                                <PieChart
-                                    data={aggregatedData}
-                                    width={screenWidth - 60}
-                                    height={220}
-                                    chartConfig={chartConfig}
-                                    accessor="count"
-                                    backgroundColor="transparent"
-                                    paddingLeft="15"
-                                    absolute
-                                    hasLegend={false}
-                                    center={[50, 0]}
-                                />
-                            </View>
+                            <PieChart
+                                data={aggregatedData}
+                                width={screenWidth - 60}
+                                height={220}
+                                chartConfig={chartConfig}
+                                accessor="count"
+                                backgroundColor="transparent"
+                                paddingLeft="15"
+                                absolute
+                                hasLegend={false}
+                                center={[50, 0]}
+                            />
                             <View style={styles.legendContainer}>
                                 {aggregatedData.map((segment) => (
                                     <View key={segment.name} style={styles.legendItem}>
@@ -361,8 +396,15 @@ const PatientMedicationProgress = () => {
                     )}
                 </View>
 
+                {/* Display Aggregated Counts for Debugging */}
+                <View style={styles.debugContainer}>
+                    <Text style={styles.debugText}>Aggregated Taken: {totalTaken}</Text>
+                    <Text style={styles.debugText}>Aggregated Not Taken: {totalNotTaken}</Text>
+                    <Text style={styles.debugText}>Aggregated Remaining: {totalRemaining}</Text>
+                </View>
+
                 {/* Medication List */}
-                <View style={styles.medicationsCard}>
+                <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Individual Medications</Text>
                     {medications.length === 0 ? (
                         <Text style={styles.noMedicationsText}>No medications found.</Text>
@@ -374,14 +416,14 @@ const PatientMedicationProgress = () => {
                                     name: 'Taken',
                                     count: medication.taken,
                                     color: chartColors.taken,
-                                    legendFontColor: '#000000',
+                                    legendFontColor: '#2C3A59',
                                     legendFontSize: 12,
                                 },
                                 {
                                     name: 'Not Taken',
                                     count: medication.notTaken,
                                     color: chartColors.notTaken,
-                                    legendFontColor: '#000000',
+                                    legendFontColor: '#2C3A59',
                                     legendFontSize: 12,
                                 },
                             ];
@@ -391,7 +433,7 @@ const PatientMedicationProgress = () => {
                                     name: 'Remaining',
                                     count: medication.remaining,
                                     color: chartColors.remaining,
-                                    legendFontColor: '#000000',
+                                    legendFontColor: '#2C3A59',
                                     legendFontSize: 12,
                                 });
                             }
@@ -408,8 +450,8 @@ const PatientMedicationProgress = () => {
                                         <>
                                             <PieChart
                                                 data={data}
-                                                width={screenWidth - 80}
-                                                height={180}
+                                                width={screenWidth - 100}
+                                                height={150}
                                                 chartConfig={chartConfig}
                                                 accessor="count"
                                                 backgroundColor="transparent"
@@ -445,61 +487,43 @@ const PatientMedicationProgress = () => {
                     )}
                 </View>
             </ScrollView>
-        </SafeAreaView>)
+        </SafeAreaView>
+    )
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#ffffff', // Changed to white
+        backgroundColor: '#F5F5F5',
     },
     scrollContainer: {
         padding: 20,
         paddingBottom: 40,
     },
     header: {
-        marginBottom: 30,
+        marginBottom: 20,
         alignItems: 'center',
     },
     headerTitle: {
-        color: '#2c3e50',
-        fontSize: 28,
+        color: '#2C3A59',
+        fontSize: 26,
         fontWeight: '700',
         textAlign: 'center',
     },
-    refreshButtonTop: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 10,
-    },
-    refreshButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 12,
-        backgroundColor: '#2C3A59',
-        borderRadius: 8,
-    },
-    refreshButtonText: {
-        color: '#ffffff',
-        fontSize: 16,
-        marginLeft: 8,
-        fontWeight: '600',
-    },
-    chartCard: {
-        backgroundColor: '#f9f9f9', // Light gray for card background
-        borderRadius: 15,
+    card: {
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
         padding: 20,
-        marginBottom: 30,
-        alignItems: 'center',
+        marginBottom: 25,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 5,
+        shadowRadius: 4,
         elevation: 3,
     },
     sectionTitle: {
-        color: '#2c3e50',
-        fontSize: 22,
+        color: '#2C3A59',
+        fontSize: 20,
         fontWeight: '600',
         marginBottom: 15,
         textAlign: 'center',
@@ -517,112 +541,85 @@ const styles = StyleSheet.create({
         marginVertical: 5,
     },
     legendIndicator: {
-        width: 14,
-        height: 14,
-        borderRadius: 7,
-        marginRight: 6,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        marginRight: 5,
     },
     legendText: {
-        color: '#2c3e50',
+        color: '#2C3A59',
         fontSize: 14,
-    },
-    medicationsCard: {
-        backgroundColor: '#f9f9f9', // Light gray for card background
-        borderRadius: 15,
-        padding: 10,
-        marginBottom: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 3,
     },
     medicationContainer: {
-        backgroundColor: '#ffffff', // White for individual medication cards
-        borderRadius: 15,
-        padding: 15,
-        marginBottom: 25,
-        alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    medicationName: {
-        color: '#2c3e50',
-        fontSize: 20,
-        fontWeight: '600',
-        marginBottom: 15,
-        textAlign: 'center',
-    },
-    medicationStats: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        width: '100%',
-        marginTop: 15,
-    },
-    statItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    statIndicator: {
-        width: 14,
-        height: 14,
-        borderRadius: 7,
-        marginRight: 6,
-    },
-    statText: {
-        color: '#2c3e50',
-        fontSize: 14,
-    },
-    loadingContainer: {
-        flex: 1,
-        backgroundColor: '#ffffff', // Changed to white
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    errorContainer: {
-        flex: 1,
-        backgroundColor: '#ffffff', // Changed to white
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    errorText: {
-        color: '#F44336',
-        fontSize: 18,
-        textAlign: 'center',
         marginBottom: 20,
     },
+    medicationName: {
+        color: '#2C3A59',
+        fontSize: 18,
+        fontWeight: '500',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
     noMedicationsText: {
-        color: '#2c3e50',
+        color: '#7F8C8D',
         fontSize: 16,
         textAlign: 'center',
         marginTop: 50,
     },
     noDataText: {
-        color: '#2c3e50',
+        color: '#7F8C8D',
         fontSize: 16,
         textAlign: 'center',
         marginTop: 20,
     },
-    debugContainer: {
-        backgroundColor: '#f9f9f9', // Light gray for debug container
-        borderRadius: 15,
+    loadingContainer: {
+        flex: 1,
+        backgroundColor: '#F5F5F5',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    errorContainer: {
+        flex: 1,
+        backgroundColor: '#F5F5F5',
+        justifyContent: 'center',
+        alignItems: 'center',
         padding: 20,
-        marginBottom: 30,
+    },
+    errorText: {
+        color: '#E74C3C',
+        fontSize: 18,
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    refreshButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        backgroundColor: '#2C3A59',
+        borderRadius: 8,
+    },
+    refreshButtonText: {
+        color: '#ffffff',
+        fontSize: 16,
+        marginLeft: 8,
+        fontWeight: '600',
+    },
+    debugContainer: {
+        backgroundColor: '#ffffff',
+        borderRadius: 10,
+        padding: 15,
+        marginBottom: 25,
         alignItems: 'flex-start',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 3,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
     },
     debugText: {
-        color: '#2c3e50',
+        color: '#2C3A59',
         fontSize: 14,
-        marginBottom: 10,
+        marginBottom: 5,
     },
 });
 

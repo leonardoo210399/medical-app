@@ -1,7 +1,17 @@
 // patientHome.jsx
 
 import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, ScrollView, StyleSheet, LayoutAnimation, Platform, UIManager } from 'react-native';
+import {
+    View,
+    Text,
+    Image,
+    TouchableOpacity,
+    ScrollView,
+    StyleSheet,
+    LayoutAnimation,
+    Platform,
+    UIManager,
+} from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { signOut } from "../../lib/appwrite";
 import { router } from "expo-router";
@@ -76,7 +86,7 @@ const PatientHome = () => {
                 {/* Header with Logout */}
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Patient Home</Text>
-                    <TouchableOpacity onPress={logout} style={styles.logoutButton}>
+                    <TouchableOpacity onPress={logout} style={styles.logoutButton} accessibilityLabel="Logout" accessibilityRole="button">
                         <Image
                             source={icons.logout}
                             resizeMode="contain"
@@ -91,52 +101,62 @@ const PatientHome = () => {
                 </View>
 
                 {/* Profile Details */}
-                <View style={styles.profileContainer}>
+                <View style={styles.card}>
                     <Text style={styles.sectionTitle}>Profile Details</Text>
                     <View style={styles.profileDetails}>
-                        <Text style={styles.detailText}>
-                            <Text style={styles.boldText}>Name:</Text> {name}
-                        </Text>
-                        <Text style={styles.detailText}>
-                            <Text style={styles.boldText}>Age:</Text> {age}
-                        </Text>
-                        <Text style={styles.detailText}>
-                            <Text style={styles.boldText}>Gender:</Text> {gender}
-                        </Text>
-                        <Text style={styles.detailText}>
-                            <Text style={styles.boldText}>Comorbidities:</Text> {comorbidities.join(", ")}
-                        </Text>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Name:</Text>
+                            <Text style={styles.detailValue}>{name}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Age:</Text>
+                            <Text style={styles.detailValue}>{age}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Gender:</Text>
+                            <Text style={styles.detailValue}>{gender}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Comorbidity:</Text>
+                            <Text style={styles.detailValue}>{comorbidities.join(", ")}</Text>
+                        </View>
                         {comorbidities.includes("Others") && (
-                            <Text style={styles.detailText}>
-                                <Text style={styles.boldText}>Other Comorbidities:</Text> {otherComorbidities}
-                            </Text>
+                            <View style={styles.detailRow}>
+                                <Text style={styles.detailLabel}>Other Comorbidities:</Text>
+                                <Text style={styles.detailValue}>{otherComorbidities}</Text>
+                            </View>
                         )}
-                        <Text style={styles.detailText}>
-                            <Text style={styles.boldText}>Dialysis:</Text> {dialysis ? "Yes" : "No"}
-                        </Text>
-                        <Text style={styles.detailText}>
-                            <Text style={styles.boldText}>Height:</Text> {height ? `${height} cm` : "N/A"}
-                        </Text>
-                        <Text style={styles.detailText}>
-                            <Text style={styles.boldText}>Weight:</Text> {weight ? `${weight} kg` : "N/A"}
-                        </Text>
-                        <Text style={styles.detailText}>
-                            <Text style={styles.boldText}>Allergies:</Text> {allergies || "None"}
-                        </Text>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Dialysis:</Text>
+                            <Text style={styles.detailValue}>{dialysis ? "Yes" : "No"}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Height:</Text>
+                            <Text style={styles.detailValue}>{height ? `${height} cm` : "N/A"}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Weight:</Text>
+                            <Text style={styles.detailValue}>{weight ? `${weight} kg` : "N/A"}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Allergies:</Text>
+                            <Text style={styles.detailValue}>{allergies || "None"}</Text>
+                        </View>
                         {/* Uncomment if needed
-                        <Text style={styles.detailText}>
-                            <Text style={styles.boldText}>Confirmed Diagnosis:</Text> {confirmedDiagnosis || "None"}
-                        </Text>
+                        <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Confirmed Diagnosis:</Text>
+                            <Text style={styles.detailValue}>{confirmedDiagnosis || "None"}</Text>
+                        </View>
                         */}
                     </View>
                 </View>
 
                 {/* CKD Information */}
-                <View style={styles.ckdContainer}>
+                <View style={styles.card}>
                     <Text style={styles.sectionTitle}>About Chronic Kidney Disease (CKD)</Text>
                     {CKDSections.map((section, index) => (
                         <View key={index} style={styles.ckdSection}>
-                            <TouchableOpacity onPress={() => toggleSection(index)} style={styles.ckdHeader}>
+                            <TouchableOpacity onPress={() => toggleSection(index)} style={styles.ckdHeader} accessibilityLabel={`Toggle section ${section.title}`} accessibilityRole="button">
                                 <Text style={styles.ckdTitle}>{section.title}</Text>
                                 <Image
                                     source={
@@ -161,14 +181,13 @@ const PatientHome = () => {
                     ))}
                 </View>
             </ScrollView>
-        </SafeAreaView>
-    );
+        </SafeAreaView>)
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#121212',
+        backgroundColor: '#f0f4f7',
     },
     scrollContainer: {
         padding: 20,
@@ -181,54 +200,62 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     headerTitle: {
-        color: '#ffffff',
-        fontSize: 24,
-        fontWeight: 'bold',
+        color: '#2c3e50',
+        fontSize: 28,
+        fontWeight: '700',
     },
     logoutButton: {
-        padding: 10,
+        padding: 8,
     },
     logoutIcon: {
         width: 24,
         height: 24,
-        tintColor: '#ffffff',
+        tintColor: '#e74c3c',
     },
     welcomeContainer: {
         marginBottom: 20,
     },
     welcomeText: {
-        color: '#ffffff',
-        fontSize: 22,
+        color: '#34495e',
+        fontSize: 24,
         fontWeight: '600',
     },
-    profileContainer: {
-        backgroundColor: '#1e1e1e',
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 30,
+    card: {
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 25,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
     sectionTitle: {
-        color: '#ffffff',
-        fontSize: 20,
+        color: '#2c3e50',
+        fontSize: 22,
         fontWeight: '600',
-        marginBottom: 10,
+        marginBottom: 15,
+        textAlign: 'center',
     },
     profileDetails: {
-        space: 10,
+        // No specific styling needed for now
     },
-    detailText: {
-        color: '#d1d1d1',
+    detailRow: {
+        flexDirection: 'row',
+        marginBottom: 10,
+        alignItems: 'center',
+    },
+    detailLabel: {
+        flex: 1,
+        color: '#2c3e50',
         fontSize: 16,
-        marginBottom: 5,
+        fontWeight: '500',
     },
-    boldText: {
-        fontWeight: 'bold',
-        color: '#ffffff',
-    },
-    ckdContainer: {
-        backgroundColor: '#1e1e1e',
-        borderRadius: 10,
-        padding: 15,
+    detailValue: {
+        flex: 2,
+        color: '#7f8c8d',
+        fontSize: 16,
     },
     ckdSection: {
         marginBottom: 15,
@@ -237,12 +264,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#2a2a2a',
-        padding: 10,
+        backgroundColor: '#ecf0f1',
+        padding: 12,
         borderRadius: 8,
     },
     ckdTitle: {
-        color: '#ffffff',
+        color: '#2c3e50',
         fontSize: 18,
         fontWeight: '500',
         flex: 1,
@@ -251,12 +278,12 @@ const styles = StyleSheet.create({
     arrowIcon: {
         width: 20,
         height: 20,
-        tintColor: '#ffffff',
+        tintColor: '#2c3e50',
         marginLeft: 10,
     },
     ckdContent: {
-        backgroundColor: '#333333',
-        padding: 10,
+        backgroundColor: '#bdc3c7',
+        padding: 12,
         borderRadius: 8,
         marginTop: 5,
     },
@@ -267,7 +294,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     ckdText: {
-        color: '#d1d1d1',
+        color: '#2c3e50',
         fontSize: 16,
         lineHeight: 22,
     },

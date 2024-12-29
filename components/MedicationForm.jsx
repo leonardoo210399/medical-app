@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+// components/MedicationForm.jsx
+
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   View,
@@ -10,12 +12,13 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { addMedication } from "../lib/appwrite";
+import { addMedication, updatePatientMedication } from "../lib/appwrite"; // Import update function
 import FormField from "./FormField"; // Adjust the import path as necessary
 import Icon from 'react-native-vector-icons/Ionicons'; // Ensure Ionicons is installed
 import DateTimePicker from "react-native-modal-datetime-picker";
+import moment from "moment"; // Ensure moment is installed
 
-const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
+const MedicationForm = ({ visible, onClose, onSubmit, patientId, medication }) => {
   // State management
   const [formData, setFormData] = useState({
     medicineName: "",
@@ -37,6 +40,47 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTimePickerVisible, setTimePickerVisible] = useState(false);
+
+  // Populate form data when editing a medication
+  useEffect(() => {
+    if (medication) {
+      setFormData({
+        medicineName: medication.medicineName || "",
+        startDate: medication.startDate ? moment(medication.startDate).format("YYYY-MM-DD") : null,
+        endDate: medication.endDate ? moment(medication.endDate).format("YYYY-MM-DD") : null,
+        frequency: medication.frequency || "daily",
+        dailyTimes: medication.dailyTimes ? String(medication.dailyTimes) : "1",
+        intervalType: medication.intervalType || "hours",
+        intervalValue: medication.intervalValue ? String(medication.intervalValue) : "1",
+        specificDays: Array.isArray(medication.specificDays) ? medication.specificDays : [],
+        cyclicIntakeDays: medication.cyclicIntakeDays ? String(medication.cyclicIntakeDays) : "21",
+        cyclicPauseDays: medication.cyclicPauseDays ? String(medication.cyclicPauseDays) : "7",
+        times: Array.isArray(medication.times) ? medication.times : [],
+        dosage: medication.dosage || "",
+        onDemand: medication.onDemand || false,
+        description: medication.description || "",
+      });
+    } else {
+      // Reset form when not editing
+      setFormData({
+        medicineName: "",
+        startDate: null,
+        endDate: null,
+        frequency: "daily",
+        dailyTimes: "1",
+        intervalType: "hours",
+        intervalValue: "1",
+        specificDays: [],
+        cyclicIntakeDays: "21",
+        cyclicPauseDays: "7",
+        times: [],
+        dosage: "",
+        onDemand: false,
+        description: "",
+      });
+    }
+    setErrors({});
+  }, [medication]);
 
   // Function to update form fields
   const updateField = (field, value) => {
@@ -149,7 +193,7 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
         dosage: formData.dosage,
         onDemand: formData.onDemand,
         description: formData.description, // Include description
-        userMedication: patient?.users.$id,
+        userMedication: patientId,
       };
 
       // Conditionally add fields based on frequency
@@ -170,8 +214,15 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
         data.times = formData.times; // Assuming Appwrite accepts array of strings for times
       }
 
-      await addMedication(data);
-      Alert.alert("Success", "Medication added successfully.");
+      if (medication) {
+        // Update existing medication
+        await updatePatientMedication(medication.$id, data);
+        Alert.alert("Success", "Medication updated successfully.");
+      } else {
+        // Create new medication
+        await addMedication(data);
+        Alert.alert("Success", "Medication added successfully.");
+      }
       onSubmit();
       onClose();
       // Reset form
@@ -189,12 +240,12 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
         times: [],
         dosage: "",
         onDemand: false,
-        description: "", // Reset description
+        description: "",
       });
       setErrors({});
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "There was an error adding the medication. Please try again.");
+      Alert.alert("Error", "There was an error submitting the medication. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -205,7 +256,7 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
         <View style={styles.modalBackground}>
           <View style={styles.modalContainer}>
             <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-              <Text style={styles.title}>Add Medication</Text>
+              <Text style={styles.title}>{medication ? "Edit Medication" : "Add Medication"}</Text>
 
               {/* Medicine Name */}
               <FormField
@@ -431,7 +482,7 @@ const MedicationForm = ({ visible, onClose, onSubmit, patient }) => {
                   {isSubmitting ? (
                       <ActivityIndicator color="#fff" />
                   ) : (
-                      <Text style={styles.buttonText}>Submit</Text>
+                      <Text style={styles.buttonText}>{medication ? "Update" : "Add"}</Text>
                   )}
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -458,7 +509,7 @@ const styles = StyleSheet.create({
     padding: 20
   },
   modalContainer: {
-    backgroundColor: "#1e1e1e", // Dark background for contrast
+    backgroundColor: "#1e1e1e", // Light background for better readability
     borderRadius: 20,
     padding: 20,
     maxHeight: '90%',
@@ -475,7 +526,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
     marginBottom: 5,
     color: "#fff",
   },
@@ -493,15 +544,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     margin: 4,
     borderWidth: 1,
-    borderColor: '#fff'
+    borderColor: '#2C3A59'
   },
   selectedDayButton: {
-    backgroundColor: "#007BFF",
-    borderColor: "#007BFF"
+    backgroundColor: "#2C3A59",
+    borderColor: "#2C3A59"
   },
   dayText: {
     fontWeight: "bold",
-    color: '#fff'
+    color: '#2C3A59'
   },
   selectedDayText: {
     color: "#fff"
@@ -517,7 +568,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginRight: 10,
-    backgroundColor: '#333',
+    backgroundColor: '#2C3A59',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
@@ -540,8 +591,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   submitButton: {
-    backgroundColor: "#28a745",
-    paddingVertical: 12,
+    backgroundColor: "#2980B9",
+    paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 10,
     flex: 1,
@@ -549,8 +600,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: "#dc3545",
-    paddingVertical: 12,
+    backgroundColor: "#95a5a6",
+    paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 10,
     flex: 1,
@@ -558,20 +609,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   disabledButton: {
-    backgroundColor: "#6c757d",
+    backgroundColor: "#7f8c8d",
   },
   buttonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   errorText: {
-    color: "#ff5c5c",
+    color: "#e74c3c",
     marginTop: 5,
   },
   charCount: {
     alignSelf: 'flex-end',
-    color: '#ccc',
+    color: '#7f8c8d',
     fontSize: 12,
     marginTop: 4,
   },
