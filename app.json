@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "CKD",
-    "slug": "CKD",
+    "slug": "ckd",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "assets/images/profile.png",
@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aditya210399.CKD"
     },
     "android": {
       "adaptiveIcon": {
@@ -35,8 +36,12 @@
     },
     "extra": {
       "eas": {
-        "projectId": "c58735db-ee7a-4528-9698-adb4b4a93155"
+        "projectId": "d8da9c21-0ca3-4f2c-94cf-bd71a8d3f0c7"
+      },
+      "router": {
+        "origin": false
       }
-    }
+    },
+    "owner": "aditya210399"
   }
 }

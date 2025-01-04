@@ -36,7 +36,7 @@ const SignIn = () => {
 
       Alert.alert("Success", "User signed in successfully");
       if (result.doctor){
-        router.replace("/doctorHome");
+        router.replace("/patientList");
       } else {
         router.replace("/patientHome");
       }
