@@ -16,6 +16,7 @@ import pill from "../assets/icons/pill.png";
 import list from "../assets/icons/list.png";
 import close from "../assets/icons/close.png"
 import pieChart from "../assets/icons/pieChart.png";
+import support from "../assets/icons/support.png";
 export default {
   play,
   bookmark,
@@ -35,4 +36,5 @@ export default {
   list,
   close,
   pieChart,
+  support
 };

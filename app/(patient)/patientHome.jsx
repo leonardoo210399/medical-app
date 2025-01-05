@@ -26,25 +26,57 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const CKDSections = [
     {
         title: "What is Chronic Kidney Disease?",
-        content: "Chronic Kidney Disease (CKD) is a long-term condition where the kidneys do not work effectively. It can lead to kidney failure and other serious health issues.",
+        content: [
+            { type: 'bullet', text: "Chronic kidney disease, also called chronic kidney failure, involves a gradual loss of kidney function." },
+            { type: 'bullet', text: "The kidneys are damaged over time (for at least 3 months) and have a hard time doing all their important work like waste removal, maintaining blood pressure, balancing minerals, and helping to make red blood cells (RBCs)." },
+            { type: 'bullet', text: "Chronic kidney disease can progress to end-stage kidney failure, which is fatal without artificial filtering (dialysis) or a kidney transplant." },
+        ],
         image: require("../../assets/images/ckd1.png"),
     },
     {
         title: "Symptoms of CKD",
-        content: "Common symptoms include fatigue, swollen ankles, shortness of breath, and frequent urination, especially at night.",
+        content: [
+            { type: 'bullet', text: "Urinating (peeing) more often or less often than usual" },
+            { type: 'bullet', text: "Nausea" },
+            { type: 'bullet', text: "Vomiting" },
+            { type: 'bullet', text: "Loss of appetite" },
+            { type: 'bullet', text: "Swelling of feet and ankles" },
+            { type: 'bullet', text: "Dry, itchy skin" },
+            { type: 'bullet', text: "Trouble sleeping" },
+            { type: 'bullet', text: "Trouble concentrating" },
+            { type: 'bullet', text: "Numbness in your arms, legs, ankles, or feet" },
+            { type: 'bullet', text: "Weight loss without trying to lose weight" },
+            { type: 'bullet', text: "Achy muscles or cramping" },
+        ],
         image: require("../../assets/images/ckd2.png"),
     },
     {
         title: "Managing CKD",
-        content: "Managing CKD involves controlling underlying conditions like diabetes and hypertension, following a kidney-friendly diet, and regular monitoring by healthcare professionals.",
+        content: [
+            { type: 'paragraph', text: "Here’s a focused diet counseling guide for CKD patients:" },
+            { type: 'subheading', text: "In General:" },
+            { type: 'bullet', text: "Early Detection and Regular Monitoring: CKD is best managed when detected early. Regular check-ups help track kidney function through blood tests and urine tests, allowing for timely intervention." },
+            { type: 'bullet', text: "Control Blood Pressure and Blood Sugar: High blood pressure and diabetes can worsen kidney damage. Keeping these under control with the right lifestyle and medications is crucial for slowing CKD progression." },
+            { type: 'bullet', text: "Medication Adherence: Taking your medications as prescribed is very important for managing kidney disease and preventing it from getting worse. Missing medicine for blood pressure, blood sugar, and kidney health can worsen kidney disease and cause more strain on your kidneys. Taking your medicine regularly helps keep everything stable and supports your kidneys. Using digital reminders can help you remember to take your medicine on time. If you have any side effects, let your doctor know, so they can adjust your treatment." },
+            { type: 'bullet', text: "Note: Our app will make it easy for you to track your medications and stay on top of your routine, helping you stick to your treatment plan and stay healthy!" },
+            { type: 'subheading', text: "Diet Related:" },
+            { type: 'bullet', text: "Limit Protein Intake: Reduce the amount of protein, especially from animal sources, to ease the burden on the kidneys. Focus on high-quality protein like lean meats, eggs, and plant-based proteins, but consume them in moderation based on your kidney function stage." },
+            { type: 'bullet', text: "Control Sodium (Salt) Intake: Minimize salt by avoiding processed foods and using herbs and spices for flavor to prevent fluid retention and high blood pressure." },
+            { type: 'bullet', text: "Manage Potassium and Phosphorus: Depending on kidney function, limit high-potassium foods (like bananas, oranges, potatoes, and tomatoes) and high-phosphorus foods (like dairy, nuts, and colas). A dietitian can help determine safe levels based on lab results." },
+            { type: 'bullet', text: "Monitor Fluid Intake: Depending on the stage of CKD and fluid retention, you may need to adjust how much water or other fluids you drink. Your doctor will guide how much is safe for you." },
+            { type: 'bullet', text: "Eat Heart-Healthy Foods: Since CKD often coexists with heart disease risk factors, focus on a heart-healthy diet that includes healthy fats (like olive oil), whole grains, fruits, and vegetables, while limiting saturated fats and cholesterol." },
+        ],
         image: require("../../assets/images/ckd3.png"),
     },
     {
         title: "Prevention Tips",
-        content: "Maintain a healthy lifestyle, stay hydrated, avoid excessive use of over-the-counter painkillers, and regularly check your kidney function.",
+        content: [
+            { type: 'bullet', text: "Maintain a healthy weight with regular exercise, aiming for 30 minutes most days, to control blood pressure and reduce kidney damage." },
+        ],
         image: require("../../assets/images/ckd4.png"),
     },
 ];
+
 
 const PatientHome = () => {
     const { user, setUser, setIsLogged } = useGlobalContext();
@@ -85,7 +117,13 @@ const PatientHome = () => {
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 {/* Header with Logout */}
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Patient Home</Text>
+                    <View>
+                        <Image
+                            source={require('../../assets/images/logo.png')}
+                            style={styles.logo}
+                            resizeMode="contain"
+                        />
+                    </View>
                     <TouchableOpacity onPress={logout} style={styles.logoutButton} accessibilityLabel="Logout" accessibilityRole="button">
                         <Image
                             source={icons.logout}
@@ -174,14 +212,47 @@ const PatientHome = () => {
                                         resizeMode="contain"
                                         style={styles.ckdImage}
                                     />
-                                    <Text style={styles.ckdText}>{section.content}</Text>
+                                    {renderContent(section.content)}
                                 </View>
                             )}
                         </View>
                     ))}
                 </View>
             </ScrollView>
-        </SafeAreaView>)
+        </SafeAreaView>
+    );
+};
+
+// Helper function to render content with proper formatting
+const renderContent = (content) => {
+    return content.map((item, index) => {
+        switch (item.type) {
+            case 'bullet':
+                return (
+                    <Text key={index} style={styles.bulletPoint}>
+                        {"\u2022"} {item.text}
+                    </Text>
+                );
+            case 'subheading':
+                return (
+                    <Text key={index} style={styles.subheading}>
+                        {item.text}
+                    </Text>
+                );
+            case 'paragraph':
+                return (
+                    <Text key={index} style={styles.paragraph}>
+                        {item.text}
+                    </Text>
+                );
+            default:
+                return (
+                    <Text key={index} style={styles.paragraph}>
+                        {item.text}
+                    </Text>
+                );
+        }
+    });
 };
 
 const styles = StyleSheet.create({
@@ -199,10 +270,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 20,
     },
-    headerTitle: {
-        color: '#2c3e50',
-        fontSize: 28,
-        fontWeight: '700',
+    logo: {
+        width: 200,
+        height: 50,
     },
     logoutButton: {
         padding: 8,
@@ -297,6 +367,26 @@ const styles = StyleSheet.create({
         color: '#2c3e50',
         fontSize: 16,
         lineHeight: 22,
+    },
+    bulletPoint: {
+        color: '#2c3e50',
+        fontSize: 16,
+        lineHeight: 22,
+        marginBottom: 5,
+        marginLeft: 10,
+    },
+    subheading: {
+        color: '#2c3e50',
+        fontSize: 18,
+        fontWeight: '600',
+        marginTop: 10,
+        marginBottom: 5,
+    },
+    paragraph: {
+        color: '#2c3e50',
+        fontSize: 16,
+        lineHeight: 22,
+        marginBottom: 10,
     },
 });
 
