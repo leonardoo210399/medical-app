@@ -1,14 +1,19 @@
-import {StatusBar} from "expo-status-bar";
-import {Redirect, Tabs} from "expo-router";
-import {Image, Text, View} from "react-native";
+// components/TabLayout.js
+import React from "react";
+import { StatusBar } from "expo-status-bar";
+import { Redirect, Tabs } from "expo-router";
+import { Image, Text, View } from "react-native";
 
-import {icons} from "../../constants";
+// Import the colors palette
+import colors from "../../constants/colors"; // Adjust the path as necessary
+import { icons } from "../../constants";
 // import { Loader } from "../../components";
-import {useGlobalContext} from "../../context/GlobalProvider";
+import { useGlobalContext } from "../../context/GlobalProvider";
 
-const TabIcon = ({icon, color, name, focused}) => {
+// Define the TabIcon component
+const TabIcon = ({ icon, color, name, focused }) => {
     return (
-        <View className="flex items-center justify-center gap-2">
+        <View className="flex items-center justify-center gap-1">
             <Image
                 source={icon}
                 resizeMode="contain"
@@ -17,7 +22,7 @@ const TabIcon = ({icon, color, name, focused}) => {
             />
             <Text
                 className={`${focused ? "font-psemibold" : "font-pregular"} text-xs`}
-                style={{color: color}}
+                style={{ color: color }}
             >
                 {name}
             </Text>
@@ -28,19 +33,20 @@ const TabIcon = ({icon, color, name, focused}) => {
 const TabLayout = () => {
     // const { loading, isLogged } = useGlobalContext();
 
+    // Uncomment and use global context if needed
     // if (!loading && !isLogged) return <Redirect href="/sign-in" />;
 
     return (
         <>
             <Tabs
                 screenOptions={{
-                    tabBarActiveTintColor: "#FFA001",
-                    tabBarInactiveTintColor: "#CDCDE0",
+                    tabBarActiveTintColor: colors.picton_blue.DEFAULT, // Example: picton_blue-500
+                    tabBarInactiveTintColor: colors.gray[100],
                     tabBarShowLabel: false,
                     tabBarStyle: {
-                        backgroundColor: "#161622",
+                        backgroundColor: colors.gray[500],
                         borderTopWidth: 1,
-                        borderTopColor: "#232533",
+                        borderTopColor: colors.gray[400],
                         height: 84,
                     },
                 }}
@@ -48,9 +54,9 @@ const TabLayout = () => {
                 <Tabs.Screen
                     name="patientList"
                     options={{
-                        title: "patientList",
+                        title: "Patient List",
                         headerShown: false,
-                        tabBarIcon: ({color, focused}) => (
+                        tabBarIcon: ({ color, focused }) => (
                             <TabIcon
                                 icon={icons.list}
                                 color={color}
@@ -65,7 +71,7 @@ const TabLayout = () => {
                     options={{
                         title: "Home",
                         headerShown: false,
-                        tabBarIcon: ({color, focused}) => (
+                        tabBarIcon: ({ color, focused }) => (
                             <TabIcon
                                 icon={icons.home}
                                 color={color}
@@ -75,12 +81,13 @@ const TabLayout = () => {
                         ),
                     }}
                 />
-
-
+                {/* Add more Tabs.Screen components as needed */}
             </Tabs>
 
-            {/*<Loader isLoading={loading} />*/}
-            <StatusBar backgroundColor="#161622" style="light"/>
+            {/* Uncomment if using a Loader component */}
+            {/* <Loader isLoading={loading} /> */}
+
+            <StatusBar backgroundColor={colors.gray[500]} style="light" />
         </>
     );
 };

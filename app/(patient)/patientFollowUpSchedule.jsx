@@ -6,7 +6,6 @@ import {
     Text,
     StyleSheet,
     ActivityIndicator,
-    Alert,
     Modal,
     TouchableOpacity,
     FlatList,
@@ -19,6 +18,8 @@ import { getFollowUpsByPatient, updateScheduleStatus } from "../../lib/appwrite"
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useGlobalContext } from '../../context/GlobalProvider';
 import { Picker } from "@react-native-picker/picker";
+import colors from "../../constants/colors";
+import Toast from 'react-native-toast-message'; // Import Toast
 
 // Configure the calendar locale (optional)
 LocaleConfig.locales["en"] = {
@@ -78,20 +79,17 @@ const PatientFollowUpSchedule = () => {
     const { user } = useGlobalContext(); // Ensure your GlobalProvider provides 'user'
     const patientId = user?.$id; // Adjust based on your user object structure
 
-    // Fetch schedules on component mount
     useEffect(() => {
         fetchSchedules();
     }, []);
 
-    // Function to fetch schedules
     const fetchSchedules = useCallback(async () => {
         try {
-            // Fetch schedules from backend
             const response = await getFollowUpsByPatient(patientId);
             const fetchedSchedules = response.documents || [];
-
-            // Process schedules and organize them by date
             const formattedItems = {};
+            let minDate = null;
+            let maxDate = null;
 
             fetchedSchedules.forEach((schedule) => {
                 const date = moment(schedule.scheduledDate).format("YYYY-MM-DD");
@@ -99,18 +97,56 @@ const PatientFollowUpSchedule = () => {
                     formattedItems[date] = [];
                 }
                 formattedItems[date].push(schedule);
+
+                const scheduleDate = moment(schedule.scheduledDate).startOf('day');
+                if (!minDate || scheduleDate.isBefore(minDate)) minDate = scheduleDate.clone();
+                if (!maxDate || scheduleDate.isAfter(maxDate)) maxDate = scheduleDate.clone();
             });
 
-            // Replace the entire items state to ensure immutability
+            if (!minDate) minDate = moment().startOf('day');
+            if (!maxDate) maxDate = moment().endOf('day');
+
+            let currentDate = minDate.clone();
+            while (currentDate.isSameOrBefore(maxDate)) {
+                const dateStr = currentDate.format("YYYY-MM-DD");
+                if (!formattedItems[dateStr]) {
+                    formattedItems[dateStr] = [];
+                }
+                currentDate.add(1, 'day');
+            }
+
             setItems(formattedItems);
         } catch (error) {
             console.error("Error fetching schedules:", error);
-            Alert.alert("Error", "Failed to fetch your schedules. Please try again later.");
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to fetch your schedules. Please try again later.',
+                position: 'top',
+                visibilityTime: 3000,
+            });
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     }, [patientId]);
+
+    const loadItems = (month) => {
+        const updatedItems = { ...items };
+        const start = moment(month.dateString).startOf('month').subtract(15, 'days'); // Adjust as needed
+        const end = moment(month.dateString).endOf('month').add(15, 'days'); // Adjust as needed
+
+        let current = start.clone();
+        while (current.isSameOrBefore(end)) {
+            const dateStr = current.format('YYYY-MM-DD');
+            if (!updatedItems[dateStr]) {
+                updatedItems[dateStr] = []; // Initialize with empty array
+            }
+            current.add(1, 'day');
+        }
+
+        setItems(updatedItems);
+    };
 
     // Handle pull-to-refresh
     const onRefresh = useCallback(() => {
@@ -153,10 +189,24 @@ const PatientFollowUpSchedule = () => {
                 )
             );
 
-            Alert.alert("Success", "Schedule status updated successfully.");
+            // Show success toast
+            Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: 'Schedule status updated successfully.',
+                position: 'top',
+                visibilityTime: 3000,
+            });
         } catch (error) {
             console.error("Error updating schedule status:", error);
-            Alert.alert("Error", "Failed to update schedule status. Please try again.");
+            // Show error toast
+            Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to update schedule status. Please try again.',
+                position: 'top',
+                visibilityTime: 3000,
+            });
         } finally {
             setUpdating(false);
         }
@@ -198,16 +248,16 @@ const PatientFollowUpSchedule = () => {
 
     // Render empty date message with conditional rendering
     const renderEmptyDate = useCallback(() => {
-        const today = moment().format("YYYY-MM-DD");
-        if (selectedDate === today) {
-            return null; // Show nothing for today's agenda if there are no items
-        }
+        // const today = moment().format("YYYY-MM-DD");
+        // if (selectedDate === today) {
+        //     return null; // Show nothing for today's agenda if there are no items
+        // }
         return (
             <View style={styles.emptyDate}>
                 <Text style={styles.emptyDateText}>No schedules for this day.</Text>
             </View>
         );
-    }, [selectedDate]);
+    }, []);
 
     // Generate marked dates with dots
     const generateMarkedDates = useCallback(() => {
@@ -252,8 +302,9 @@ const PatientFollowUpSchedule = () => {
             <SafeAreaView style={styles.modalContainer}>
                 <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Schedules on {moment(selectedDate).format("MMMM DD, YYYY")}</Text>
-                    <TouchableOpacity onPress={() => setModalVisible(false)} accessibilityLabel="Close modal" accessibilityRole="button">
-                        <Ionicons name="close" size={24} color="#333" />
+                    <TouchableOpacity onPress={() => setModalVisible(false)} accessibilityLabel="Close modal"
+                                      accessibilityRole="button">
+                        <Ionicons name="close" size={24} color="#333"/>
                     </TouchableOpacity>
                 </View>
                 <FlatList
@@ -302,7 +353,10 @@ const PatientFollowUpSchedule = () => {
                     }
                     contentContainerStyle={styles.scheduleList}
                     refreshing={updating}
-                    // Optionally, you can show a loading indicator when updating
+                />
+                <Toast
+                    position="top"
+                    topOffset={50} // Adjust as needed
                 />
             </SafeAreaView>
         </Modal>
@@ -312,39 +366,36 @@ const PatientFollowUpSchedule = () => {
         <SafeAreaView style={styles.container}>
             <Text style={styles.title}>Your Follow-Up/Dialysis Schedule</Text>
             {loading ? (
-                <ActivityIndicator size="large" color="#00adf5" style={styles.loadingIndicator} />
+                <ActivityIndicator size="large" color="#00adf5" style={styles.loadingIndicator}/>
             ) : (
                 <Agenda
                     items={items}
                     selected={selectedDate}
                     onDayPress={handleDayPress}
-                    loadItemsForMonth={fetchSchedules}
+                    loadItemsForMonth={loadItems}
                     renderItem={renderItem}
-                    renderEmptyDate={renderEmptyDate} // Updated renderEmptyDate
+                    renderEmptyDate={renderEmptyDate}
                     rowHasChanged={(r1, r2) => r1.$id !== r2.$id || r1.status !== r2.status}
                     markingType={'multi-dot'}
                     markedDates={generateMarkedDates()}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={onRefresh}
-                            colors={['#FF9C01']}
-                        />
-                    }
+                    showOnlySelectedDayItems={false}
+                    showClosingKnob={true}
+
                     theme={{
-                        selectedDayBackgroundColor: "#00adf5",
-                        todayTextColor: "#00adf5",
-                        dotColor: "#00adf5",
+                        selectedDayBackgroundColor: colors.midnight_green.DEFAULT,
+                        todayTextColor: colors.picton_blue.DEFAULT,
+                        agendaDayTextColor: colors.picton_blue.DEFAULT,
+                        agendaTodayColor: colors.picton_blue.DEFAULT,
+                        dotColor: colors.picton_blue.DEFAULT,
+                        selectedDayTextColor: colors.white,
                         selectedDotColor: "#ffffff",
-                        arrowColor: "#00adf5",
+                        arrowColor: colors.ruddy_blue[100],
                         monthTextColor: "#333",
                         dayTextColor: "#555",
                         textDisabledColor: "#d9e1e8",
                         backgroundColor: "#ffffff",
                         calendarBackground: "#ffffff",
-                        agendaTodayColor: '#00adf5',
-                        agendaKnobColor: '#00adf5',
-                        // Add any additional theming here
+                        agendaKnobColor: colors.ruddy_blue[100],
                     }}
                 />
             )}
@@ -409,13 +460,15 @@ const styles = StyleSheet.create({
         color: "#333",
     },
     emptyDate: {
-        height: 60,
+        flex: 1,
         justifyContent: "center",
         alignItems: "center",
     },
     emptyDateText: {
         fontSize: 16,
         color: "#999",
+        justifyContent:'center',
+        alignItems:'center'
     },
     modalContainer: {
         flex: 1,
@@ -450,7 +503,7 @@ const styles = StyleSheet.create({
     scheduleType: {
         fontSize: 16,
         fontWeight: "600",
-        color: "#007BFF",
+        color: colors.ruddy_blue[100],
     },
     scheduleStatus: {
         fontSize: 16,

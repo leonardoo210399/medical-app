@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { ScrollView, Text, View, TouchableOpacity, Dimensions, Image } from 'react-native';
+import { ScrollView, Text, View, Dimensions, Image } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import { images } from "../constants";
 import FormField from "../components/FormField";
 import CustomButton from "../components/CustomButton";
-import { Link, router } from "expo-router";
+import { router } from "expo-router";
 import { patientProfileForm, signOut } from "../lib/appwrite";
 import { useGlobalContext } from "../context/GlobalProvider";
 
@@ -32,7 +32,10 @@ const PatientProfileForm = () => {
     const [allergies, setAllergies] = useState(patient.allergies || "");
     const [confirmedDiagnosis, setConfirmedDiagnosis] = useState(patient.confirmedDiagnosis || "");
 
-    // Determine role and whether Confirmed Diagnosis is editable
+    // New state variables for Language and Diet
+    const [language, setLanguage] = useState(patient.language || "english");
+    const [diet, setDiet] = useState(patient.diet || "");
+
     const role = user?.role || "Patient";
     const confirmedDiagnosisEnabled = role === "Doctor";
 
@@ -50,6 +53,12 @@ const PatientProfileForm = () => {
         { label: "Others", value: "Others" },
     ];
 
+    const languageOptions = [
+        { label: "English", value: "english" },
+        { label: "Hindi", value: "hindi" },
+        { label: "Marathi", value: "marathi" }
+    ];
+
     const submit = async () => {
         const patientData = {
             name,
@@ -62,6 +71,8 @@ const PatientProfileForm = () => {
             weight,
             allergies,
             confirmedDiagnosis,
+            language,
+            diet,
             userId: user.$id,
         };
 
@@ -71,7 +82,7 @@ const PatientProfileForm = () => {
     };
 
     return (
-        <SafeAreaView className="bg-primary h-full">
+        <SafeAreaView className="bg-ruddy_blue-500 h-full">
             <ScrollView>
                 <View
                     className="w-full flex justify-center min-h-[85vh] px-4 my-6"
@@ -86,7 +97,7 @@ const PatientProfileForm = () => {
                     />
 
                     <Text className="text-2xl font-semibold text-white mt-10 font-psemibold">
-                        Sign up to Aora
+                        Complete Your Profile
                     </Text>
 
                     {/* Name (String) */}
@@ -129,7 +140,6 @@ const PatientProfileForm = () => {
                         otherStyles="py-2"
                     />
 
-                    {/* If "Others" is selected, show a text input for additional comorbidities */}
                     {comorbidities.includes("Others") && (
                         <FormField
                             title="Other Comorbidities"
@@ -150,7 +160,6 @@ const PatientProfileForm = () => {
                         otherStyles="py-2"
                     />
 
-                     {/*Height (dropdown) */}
                     {/* Height (Number) */}
                     <FormField
                         title="Height"
@@ -169,40 +178,6 @@ const PatientProfileForm = () => {
                         handleChangeText={setWeight}
                     />
 
-                    {/* Height (dropdown) */}
-                    {/*<FormField*/}
-                    {/*    title="Height"*/}
-                    {/*    type="dropdown"*/}
-                    {/*    value={height}*/}
-                    {/*    handleChangeText={setHeight}*/}
-                    {/*    options={[*/}
-                    {/*        { label: "Select a height...", value: "" },*/}
-                    {/*        { label: "150 cm", value: "150 cm" },*/}
-                    {/*        { label: "160 cm", value: "160 cm" },*/}
-                    {/*        { label: "170 cm", value: "170 cm" },*/}
-                    {/*        { label: "180 cm", value: "180 cm" },*/}
-                    {/*        { label: "190 cm", value: "190 cm" },*/}
-                    {/*    ]}*/}
-                    {/*    otherStyles="py-2"*/}
-                    {/*/>*/}
-
-                    {/*/!* Weight (dropdown) *!/*/}
-                    {/*<FormField*/}
-                    {/*    title="Weight"*/}
-                    {/*    type="dropdown"*/}
-                    {/*    value={weight}*/}
-                    {/*    handleChangeText={setWeight}*/}
-                    {/*    options={[*/}
-                    {/*        { label: "Select a weight...", value: "" },*/}
-                    {/*        { label: "50 kg", value: "50 kg" },*/}
-                    {/*        { label: "60 kg", value: "60 kg" },*/}
-                    {/*        { label: "70 kg", value: "70 kg" },*/}
-                    {/*        { label: "80 kg", value: "80 kg" },*/}
-                    {/*        { label: "90 kg", value: "90 kg" },*/}
-                    {/*    ]}*/}
-                    {/*    otherStyles="py-2"*/}
-                    {/*/>*/}
-
                     {/* Allergies (Textarea) */}
                     <FormField
                         title="Allergies"
@@ -213,21 +188,31 @@ const PatientProfileForm = () => {
                         otherStyles="py-2"
                     />
 
-                    {/* Confirmed Diagnosis (Textarea, conditional) */}
-                    {/*<FormField*/}
-                    {/*    title="Confirmed Diagnosis"*/}
-                    {/*    type="textarea"*/}
-                    {/*    value={confirmedDiagnosis}*/}
-                    {/*    placeholder="Enter confirmed diagnosis"*/}
-                    {/*    handleChangeText={setConfirmedDiagnosis}*/}
-                    {/*    role={role}*/}
-                    {/*    confirmedDiagnosisEnabled={confirmedDiagnosisEnabled}*/}
-                    {/*/>*/}
+                    {/* Language (Dropdown) */}
+                    <FormField
+                        title="Language"
+                        type="dropdown"
+                        value={language}
+                        handleChangeText={setLanguage}
+                        options={languageOptions}
+                        placeholder="Select your preferred language"
+                        otherStyles="py-2"
+                    />
+
+                    {/* Diet (Textarea) */}
+                    <FormField
+                        title="Diet"
+                        type="textarea"
+                        value={diet}
+                        placeholder="Describe your dietary preferences"
+                        handleChangeText={setDiet}
+                        otherStyles="py-2"
+                    />
 
                     <CustomButton
                         title="Submit"
                         handlePress={submit}
-                        containerStyles="mt-7"
+                        containerStyles="mt-7 bg-midnight_green-600"
                     />
                 </View>
             </ScrollView>

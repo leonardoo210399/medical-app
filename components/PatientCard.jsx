@@ -68,6 +68,14 @@ const PatientCard = ({ patient, onPress }) => {
             <Text style={styles.detailLabel}>Diagnosis: </Text>
             {patient?.confirmedDiagnosis || "-"}
           </Text>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Language: </Text>
+            {patient?.language || "-"}
+          </Text>
+          <Text style={styles.detailText}>
+            <Text style={styles.detailLabel}>Diet: </Text>
+            {patient?.diet || "-"}
+          </Text>
         </View>
         {/*<MedicationList userID={patient.users.$id} />*/}
         {/*<FollowUpList patientId={patient.users.$id} />*/}

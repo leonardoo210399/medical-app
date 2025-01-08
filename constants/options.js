@@ -12,4 +12,10 @@ const comorbidityOptions = [
   { label: "Others", value: "Others" },
 ];
 
-export { genderOptions, comorbidityOptions };
+const languageOptions = [
+  { label: "English", value: "english" },
+  { label: "Hindi", value: "hindi" },
+  { label: "Marathi", value: "marathi" }
+];
+
+export { genderOptions, comorbidityOptions ,languageOptions};

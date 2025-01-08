@@ -1,0 +1,23 @@
+export default {
+    welcome: "Welcome, %{name}!",
+    profileDetails: "Profile Details",
+    name: "Name",
+    age: "Age",
+    gender: "Gender",
+    comorbidity: "Comorbidity",
+    otherComorbidities: "Other Comorbidities",
+    dialysis: "Dialysis",
+    height: "Height",
+    weight: "Weight",
+    allergies: "Allergies",
+    diet: "Diet",
+    aboutCKD: "About Chronic Kidney Disease (CKD)",
+    whatIsCKD: "What is Chronic Kidney Disease?",
+    symptomsOfCKD: "Symptoms of CKD",
+    managingCKD: "Managing CKD",
+    preventionTips: "Prevention Tips",
+    english: "English",
+    spanish: "Español",
+    logout: "Logout",
+    // ...add more translations as needed
+};

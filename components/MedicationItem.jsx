@@ -108,7 +108,7 @@ const MedicationItem = ({ item, onStatusUpdate }) => {
             onStatusUpdate(item.id, formattedDate, formattedTime, newStatus);
 
             // Provide user feedback
-            Alert.alert('Success', `Marked as ${newStatus === 'taken' ? 'Taken' : 'Not Taken'}`);
+            // Alert.alert('Success', `Marked as ${newStatus === 'taken' ? 'Taken' : 'Not Taken'}`);
         } catch (error) {
             console.error('Error updating intake status:', error);
             // Revert local state if backend update fails

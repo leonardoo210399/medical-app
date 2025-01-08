@@ -16,8 +16,9 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { Redirect, Tabs } from "expo-router";
 import { icons } from "../../constants";
-// import { Loader } from "../../components";
 import { useGlobalContext } from "../../context/GlobalProvider";
+import Toast from "react-native-toast-message";
+import colors from "../../constants/colors"; // Import the colors
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -88,13 +89,13 @@ const TabLayout = () => {
         <>
             <Tabs
                 screenOptions={{
-                    tabBarActiveTintColor: "#FFA001",
-                    tabBarInactiveTintColor: "#CDCDE0",
+                    tabBarActiveTintColor: colors.primary || colors.picton_blue.DEFAULT, // Adjust as needed
+                    tabBarInactiveTintColor: colors.gray[100],
                     tabBarShowLabel: false,
                     tabBarStyle: {
-                        backgroundColor: "#161622",
+                        backgroundColor: colors.gray[500],
                         borderTopWidth: 1,
-                        borderTopColor: "#232533",
+                        borderTopColor: colors.gray[400],
                         height: 84,
                     },
                 }}
@@ -225,8 +226,8 @@ const TabLayout = () => {
                     </View>
                 </TouchableOpacity>
             </Modal>
-
-            <StatusBar backgroundColor="#161622" style="light" />
+            <Toast />
+            <StatusBar backgroundColor={colors.gray[500]} style="light" />
         </>
     );
 };
@@ -257,13 +258,13 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 100,
         right: 20,
-        backgroundColor: '#2980b9',
+        backgroundColor: colors.picton_blue.DEFAULT, // Updated color
         width: 60,
         height: 60,
         borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
@@ -272,25 +273,25 @@ const styles = StyleSheet.create({
     floatingButtonIcon: {
         width: 30,
         height: 30,
-        tintColor: '#fff',
+        tintColor: colors.white,
     },
 
     // Modal Styles
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.5)', // You can also use colors.gray[200] with opacity
         justifyContent: 'center',
         alignItems: 'center',
     },
     modalContent: {
         width: '85%',
-        backgroundColor: '#fff',
+        backgroundColor: colors.white,
         borderRadius: 12,
         padding: 20,
         alignItems: 'center',
     },
     modalTitle: {
-        color: '#2c3e50',
+        color: colors.gray[200],
         fontSize: 20,
         fontWeight: '700',
         marginBottom: 15,
@@ -307,27 +308,27 @@ const styles = StyleSheet.create({
     },
     contactLabel: {
         flex: 1,
-        color: '#2c3e50',
+        color: colors.gray[200],
         fontSize: 16,
         fontWeight: '500',
     },
     contactValue: {
         flex: 2,
-        color: '#7f8c8d',
+        color: colors.gray[300],
         fontSize: 16,
     },
     linkText: {
-        color: '#2980b9',
+        color: colors.ruddy_blue.DEFAULT,
         textDecorationLine: 'underline',
     },
     closeButton: {
-        backgroundColor: '#e74c3c',
+        backgroundColor: colors.midnight_green.DEFAULT,
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 8,
     },
     closeButtonText: {
-        color: '#fff',
+        color: colors.white,
         fontSize: 16,
         fontWeight: '600',
     },

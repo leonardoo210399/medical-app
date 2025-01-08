@@ -18,6 +18,7 @@ import { databases } from '../../lib/appwrite'; // Ensure correct path
 import { Query } from 'appwrite'; // Import Query class
 import { parseISO, differenceInCalendarDays, addDays, format } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons'; // For Refresh Button Icon
+import colors from '../../constants/colors'; // Import centralized colors
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -236,15 +237,16 @@ const PatientMedicationProgress = () => {
 
     // Colors for the pie chart segments
     const chartColors = {
-        taken: '#4CAF50',    // Green
-        notTaken: '#F44336', // Red
-        remaining: '#FF9800' // Orange
+        taken: colors.midnight_green.DEFAULT,    // Soft Green from colors.js
+        notTaken: colors.gray[200],              // Dark Gray for 'Not Taken'
+        remaining: colors.picton_blue.DEFAULT,     // Soft Orange from secondary
     };
+
 
     // Chart configuration
     const chartConfig = {
-        backgroundGradientFrom: '#ffffff',
-        backgroundGradientTo: '#ffffff',
+        backgroundGradientFrom: colors.white,
+        backgroundGradientTo: colors.white,
         color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
         labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
         propsForLabels: {
@@ -256,7 +258,7 @@ const PatientMedicationProgress = () => {
     if (loading && !refreshing) { // Show loading indicator only during initial load
         return (
             <SafeAreaView style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#4CAF50" />
+                <ActivityIndicator size="large" color={colors.midnight_green.DEFAULT} />
             </SafeAreaView>
         );
     }
@@ -266,7 +268,7 @@ const PatientMedicationProgress = () => {
             <SafeAreaView style={styles.errorContainer}>
                 <Text style={styles.errorText}>{error}</Text>
                 <TouchableOpacity style={styles.refreshButton} onPress={loadData} accessibilityLabel="Refresh data" accessibilityRole="button">
-                    <Ionicons name="refresh" size={24} color="#ffffff" />
+                    <Ionicons name="refresh" size={24} color={colors.white} />
                     <Text style={styles.refreshButtonText}>Refresh</Text>
                 </TouchableOpacity>
             </SafeAreaView>
@@ -279,21 +281,21 @@ const PatientMedicationProgress = () => {
             name: 'Taken',
             count: totalTaken,
             color: chartColors.taken,
-            legendFontColor: '#000000',
+            legendFontColor: colors.black,
             legendFontSize: 12,
         },
         {
             name: 'Not Taken',
             count: totalNotTaken,
             color: chartColors.notTaken,
-            legendFontColor: '#000000',
+            legendFontColor: colors.black,
             legendFontSize: 12,
         },
         {
             name: 'Remaining',
             count: totalRemaining,
             color: chartColors.remaining,
-            legendFontColor: '#000000',
+            legendFontColor: colors.black,
             legendFontSize: 12,
         },
     ];
@@ -309,10 +311,10 @@ const PatientMedicationProgress = () => {
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={['#4CAF50']}
-                        tintColor="#4CAF50"
+                        colors={[colors.midnight_green.DEFAULT]}
+                        tintColor={colors.midnight_green.DEFAULT}
                         title="Refreshing..."
-                        titleColor="#4CAF50"
+                        titleColor={colors.midnight_green.DEFAULT}
                     />
                 }
             >
@@ -326,7 +328,7 @@ const PatientMedicationProgress = () => {
                     <Text style={styles.sectionTitle}>Overall Medication Progress</Text>
                     {totalOverallCount > 0 ? (
                         <>
-                            <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                                 <PieChart
                                     data={aggregatedData}
                                     width={screenWidth - 60}
@@ -374,14 +376,14 @@ const PatientMedicationProgress = () => {
                                     name: 'Taken',
                                     count: medication.taken,
                                     color: chartColors.taken,
-                                    legendFontColor: '#000000',
+                                    legendFontColor: colors.black,
                                     legendFontSize: 12,
                                 },
                                 {
                                     name: 'Not Taken',
                                     count: medication.notTaken,
                                     color: chartColors.notTaken,
-                                    legendFontColor: '#000000',
+                                    legendFontColor: colors.black,
                                     legendFontSize: 12,
                                 },
                             ];
@@ -391,7 +393,7 @@ const PatientMedicationProgress = () => {
                                     name: 'Remaining',
                                     count: medication.remaining,
                                     color: chartColors.remaining,
-                                    legendFontColor: '#000000',
+                                    legendFontColor: colors.black,
                                     legendFontSize: 12,
                                 });
                             }
@@ -448,10 +450,42 @@ const PatientMedicationProgress = () => {
         </SafeAreaView>)
 };
 
+// Helper function to render content with proper formatting
+const renderContent = (content) => {
+    return content.map((item, index) => {
+        switch (item.type) {
+            case 'bullet':
+                return (
+                    <Text key={index} style={styles.bulletPoint}>
+                        {"\u2022"} {item.text}
+                    </Text>
+                );
+            case 'subheading':
+                return (
+                    <Text key={index} style={styles.subheading}>
+                        {item.text}
+                    </Text>
+                );
+            case 'paragraph':
+                return (
+                    <Text key={index} style={styles.paragraph}>
+                        {item.text}
+                    </Text>
+                );
+            default:
+                return (
+                    <Text key={index} style={styles.paragraph}>
+                        {item.text}
+                    </Text>
+                );
+        }
+    });
+};
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#ffffff', // Changed to white
+        backgroundColor: colors.white, // Maintained white background
     },
     scrollContainer: {
         padding: 20,
@@ -462,7 +496,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     headerTitle: {
-        color: '#2c3e50',
+        color: colors.midnight_green.DEFAULT, // Updated color
         fontSize: 28,
         fontWeight: '700',
         textAlign: 'center',
@@ -476,29 +510,29 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         padding: 12,
-        backgroundColor: '#2C3A59',
+        backgroundColor: colors.midnight_green.DEFAULT, // Updated background color
         borderRadius: 8,
     },
     refreshButtonText: {
-        color: '#ffffff',
+        color: colors.white, // Updated text color
         fontSize: 16,
         marginLeft: 8,
         fontWeight: '600',
     },
     chartCard: {
-        backgroundColor: '#f9f9f9', // Light gray for card background
+        backgroundColor: colors.gray[100], // Light gray for card background
         borderRadius: 15,
         padding: 20,
         marginBottom: 30,
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: colors.black, // Updated shadow color
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 5,
         elevation: 3,
     },
     sectionTitle: {
-        color: '#2c3e50',
+        color: colors.midnight_green.DEFAULT, // Updated section title color
         fontSize: 22,
         fontWeight: '600',
         marginBottom: 15,
@@ -523,34 +557,34 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     legendText: {
-        color: '#2c3e50',
+        color: colors.gray[200], // Updated legend text color
         fontSize: 14,
     },
     medicationsCard: {
-        backgroundColor: '#f9f9f9', // Light gray for card background
+        backgroundColor: colors.gray[100], // Light gray for card background
         borderRadius: 15,
         padding: 10,
         marginBottom: 30,
-        shadowColor: '#000',
+        shadowColor: colors.black, // Updated shadow color
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 5,
         elevation: 3,
     },
     medicationContainer: {
-        backgroundColor: '#ffffff', // White for individual medication cards
+        backgroundColor: colors.white, // White for individual medication cards
         borderRadius: 15,
         padding: 15,
         marginBottom: 25,
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: colors.black, // Updated shadow color
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 2,
     },
     medicationName: {
-        color: '#2c3e50',
+        color: colors.midnight_green.DEFAULT, // Updated medication name color
         fontSize: 20,
         fontWeight: '600',
         marginBottom: 15,
@@ -573,54 +607,54 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     statText: {
-        color: '#2c3e50',
+        color: colors.gray[200], // Updated stat text color
         fontSize: 14,
     },
     loadingContainer: {
         flex: 1,
-        backgroundColor: '#ffffff', // Changed to white
+        backgroundColor: colors.white, // Maintained white background
         justifyContent: 'center',
         alignItems: 'center',
     },
     errorContainer: {
         flex: 1,
-        backgroundColor: '#ffffff', // Changed to white
+        backgroundColor: colors.white, // Maintained white background
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
     },
     errorText: {
-        color: '#F44336',
+        color: colors.gray[600], // Updated error text color
         fontSize: 18,
         textAlign: 'center',
         marginBottom: 20,
     },
     noMedicationsText: {
-        color: '#2c3e50',
+        color: colors.gray[200], // Updated text color
         fontSize: 16,
         textAlign: 'center',
         marginTop: 50,
     },
     noDataText: {
-        color: '#2c3e50',
+        color: colors.gray[200], // Updated text color
         fontSize: 16,
         textAlign: 'center',
         marginTop: 20,
     },
     debugContainer: {
-        backgroundColor: '#f9f9f9', // Light gray for debug container
+        backgroundColor: colors.gray[100], // Light gray for debug container
         borderRadius: 15,
         padding: 20,
         marginBottom: 30,
         alignItems: 'flex-start',
-        shadowColor: '#000',
+        shadowColor: colors.black, // Updated shadow color
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 5,
         elevation: 3,
     },
     debugText: {
-        color: '#2c3e50',
+        color: colors.gray[200], // Updated debug text color
         fontSize: 14,
         marginBottom: 10,
     },

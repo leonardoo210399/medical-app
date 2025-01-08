@@ -17,6 +17,7 @@ import { signOut } from "../../lib/appwrite";
 import { router } from "expo-router";
 import { icons } from "../../constants";
 import { useGlobalContext } from "../../context/GlobalProvider";
+import colors from "../../constants/colors"; // Import centralized colors
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -31,7 +32,7 @@ const CKDSections = [
             { type: 'bullet', text: "The kidneys are damaged over time (for at least 3 months) and have a hard time doing all their important work like waste removal, maintaining blood pressure, balancing minerals, and helping to make red blood cells (RBCs)." },
             { type: 'bullet', text: "Chronic kidney disease can progress to end-stage kidney failure, which is fatal without artificial filtering (dialysis) or a kidney transplant." },
         ],
-        image: require("../../assets/images/ckd1.png"),
+        image: require("../../assets/images/urology.png"),
     },
     {
         title: "Symptoms of CKD",
@@ -48,7 +49,7 @@ const CKDSections = [
             { type: 'bullet', text: "Weight loss without trying to lose weight" },
             { type: 'bullet', text: "Achy muscles or cramping" },
         ],
-        image: require("../../assets/images/ckd2.png"),
+        image: require("../../assets/images/assessment.png"),
     },
     {
         title: "Managing CKD",
@@ -66,17 +67,20 @@ const CKDSections = [
             { type: 'bullet', text: "Monitor Fluid Intake: Depending on the stage of CKD and fluid retention, you may need to adjust how much water or other fluids you drink. Your doctor will guide how much is safe for you." },
             { type: 'bullet', text: "Eat Heart-Healthy Foods: Since CKD often coexists with heart disease risk factors, focus on a heart-healthy diet that includes healthy fats (like olive oil), whole grains, fruits, and vegetables, while limiting saturated fats and cholesterol." },
         ],
-        image: require("../../assets/images/ckd3.png"),
+        image: require("../../assets/images/medical-report.png"),
     },
     {
         title: "Prevention Tips",
         content: [
-            { type: 'bullet', text: "Maintain a healthy weight with regular exercise, aiming for 30 minutes most days, to control blood pressure and reduce kidney damage." },
+            { type: 'bullet', text: "Maintain a healthy weight with regular exercise: Aiming for 30 minutes most days, to control blood pressure and reduce kidney damage." },
+            { type: 'bullet', text: "Avoid Smoking and Limit Alcohol: Smoking and excessive drinking can worsen kidney function. Quitting smoking and drinking in moderation, or avoiding alcohol, helps protect your kidneys and overall health." },
+            { type: 'bullet', text: "Regular Check-ups: Visit your doctor regularly to monitor kidney function, especially if you have other conditions like diabetes or hypertension." },
+            { type: 'bullet', text: "Manage Stress: Chronic stress can affect blood pressure and overall health. Practice relaxation techniques like meditation, deep breathing, or yoga to help manage stress effectively." },
+            { type: 'bullet', text: "Get Enough Sleep: Poor sleep can affect kidney function. Aim for 7-8 hours of quality sleep each night to help your body stay healthy and support kidney health." },
         ],
-        image: require("../../assets/images/ckd4.png"),
+        image: require("../../assets/images/hospital.png"),
     },
 ];
-
 
 const PatientHome = () => {
     const { user, setUser, setIsLogged } = useGlobalContext();
@@ -93,6 +97,7 @@ const PatientHome = () => {
     const [weight] = useState(patient.weight?.toString() || "");
     const [allergies] = useState(patient.allergies || "");
     const [confirmedDiagnosis] = useState(patient.confirmedDiagnosis || "");
+    const [diet] = useState(patient.diet || "");
 
     const [expandedSections, setExpandedSections] = useState([]);
 
@@ -180,12 +185,10 @@ const PatientHome = () => {
                             <Text style={styles.detailLabel}>Allergies:</Text>
                             <Text style={styles.detailValue}>{allergies || "None"}</Text>
                         </View>
-                        {/* Uncomment if needed
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Confirmed Diagnosis:</Text>
-                            <Text style={styles.detailValue}>{confirmedDiagnosis || "None"}</Text>
+                            <Text style={styles.detailLabel}>Diet:</Text>
+                            <Text style={styles.detailValue}>{diet || "None"}</Text>
                         </View>
-                        */}
                     </View>
                 </View>
 
@@ -223,32 +226,48 @@ const PatientHome = () => {
     );
 };
 
-// Helper function to render content with proper formatting
+// Helper function to render content with bold formatting before colons
 const renderContent = (content) => {
     return content.map((item, index) => {
+        // Function to render text with bold before colon
+        const renderBoldBeforeColon = (text) => {
+            const colonIndex = text.indexOf(':');
+            if (colonIndex !== -1) {
+                const beforeColon = text.substring(0, colonIndex + 1);
+                const afterColon = text.substring(colonIndex + 1);
+                return (
+                    <>
+                        <Text style={{ fontWeight: 'bold' }}>{beforeColon}</Text>
+                        <Text>{afterColon}</Text>
+                    </>
+                );
+            }
+            return text;
+        };
+
         switch (item.type) {
             case 'bullet':
                 return (
                     <Text key={index} style={styles.bulletPoint}>
-                        {"\u2022"} {item.text}
+                        {"\u2022"} {renderBoldBeforeColon(item.text)}
                     </Text>
                 );
             case 'subheading':
                 return (
                     <Text key={index} style={styles.subheading}>
-                        {item.text}
+                        {renderBoldBeforeColon(item.text)}
                     </Text>
                 );
             case 'paragraph':
                 return (
                     <Text key={index} style={styles.paragraph}>
-                        {item.text}
+                        {renderBoldBeforeColon(item.text)}
                     </Text>
                 );
             default:
                 return (
                     <Text key={index} style={styles.paragraph}>
-                        {item.text}
+                        {renderBoldBeforeColon(item.text)}
                     </Text>
                 );
         }
@@ -258,7 +277,7 @@ const renderContent = (content) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f0f4f7',
+        backgroundColor: colors.white,
     },
     scrollContainer: {
         padding: 20,
@@ -280,37 +299,35 @@ const styles = StyleSheet.create({
     logoutIcon: {
         width: 24,
         height: 24,
-        tintColor: '#e74c3c',
+        tintColor: colors.gray[600],
     },
     welcomeContainer: {
         marginBottom: 20,
     },
     welcomeText: {
-        color: '#34495e',
+        color: colors.midnight_green.DEFAULT,
         fontSize: 24,
         fontWeight: '600',
     },
     card: {
-        backgroundColor: '#ffffff',
+        backgroundColor: colors.white,
         borderRadius: 12,
         padding: 20,
         marginBottom: 25,
-        shadowColor: '#000',
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
     },
     sectionTitle: {
-        color: '#2c3e50',
+        color: colors.midnight_green.DEFAULT,
         fontSize: 22,
         fontWeight: '600',
         marginBottom: 15,
         textAlign: 'center',
     },
-    profileDetails: {
-        // No specific styling needed for now
-    },
+    profileDetails: {},
     detailRow: {
         flexDirection: 'row',
         marginBottom: 10,
@@ -318,13 +335,13 @@ const styles = StyleSheet.create({
     },
     detailLabel: {
         flex: 1,
-        color: '#2c3e50',
+        color: colors.gray[200],
         fontSize: 16,
         fontWeight: '500',
     },
     detailValue: {
         flex: 2,
-        color: '#7f8c8d',
+        color: colors.gray[300],
         fontSize: 16,
     },
     ckdSection: {
@@ -334,12 +351,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: '#ecf0f1',
+        backgroundColor: colors.gray[100],
         padding: 12,
         borderRadius: 8,
     },
     ckdTitle: {
-        color: '#2c3e50',
+        color: colors.midnight_green.DEFAULT,
         fontSize: 18,
         fontWeight: '500',
         flex: 1,
@@ -348,11 +365,11 @@ const styles = StyleSheet.create({
     arrowIcon: {
         width: 20,
         height: 20,
-        tintColor: '#2c3e50',
+        tintColor: colors.midnight_green.DEFAULT,
         marginLeft: 10,
     },
     ckdContent: {
-        backgroundColor: '#bdc3c7',
+        backgroundColor: colors.gray[100],
         padding: 12,
         borderRadius: 8,
         marginTop: 5,
@@ -363,27 +380,22 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginBottom: 10,
     },
-    ckdText: {
-        color: '#2c3e50',
-        fontSize: 16,
-        lineHeight: 22,
-    },
     bulletPoint: {
-        color: '#2c3e50',
+        color: colors.gray[200],
         fontSize: 16,
         lineHeight: 22,
         marginBottom: 5,
         marginLeft: 10,
     },
     subheading: {
-        color: '#2c3e50',
+        color: colors.gray[200],
         fontSize: 18,
         fontWeight: '600',
         marginTop: 10,
         marginBottom: 5,
     },
     paragraph: {
-        color: '#2c3e50',
+        color: colors.gray[200],
         fontSize: 16,
         lineHeight: 22,
         marginBottom: 10,
