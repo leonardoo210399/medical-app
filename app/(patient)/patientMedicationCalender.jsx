@@ -1,24 +1,23 @@
-// PatientMedicationCalendar.js
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { databases, Query } from '../../lib/appwrite'; // Adjust the import path as needed
-import { useGlobalContext } from '../../context/GlobalProvider'; // Adjust the import path as needed
+import { databases, Query } from '../../lib/appwrite';
+import { useGlobalContext } from '../../context/GlobalProvider';
 import { Agenda } from 'react-native-calendars';
 import moment from 'moment';
 import { Ionicons } from '@expo/vector-icons';
 import MedicationItem from '../../components/MedicationItem';
 import * as Notifications from 'expo-notifications';
 import Toast from "react-native-toast-message";
-import colors from '../../constants/colors'; // Import centralized colors
+import colors from '../../constants/colors';
+import { useTranslation } from 'react-i18next';
 
-// Define action identifiers and category
 const TAKEN_ACTION = 'taken';
 const NOT_TAKEN_ACTION = 'not_taken';
 const CATEGORY_ID = 'medicationReminder';
 
 const PatientMedicationCalendar = () => {
+    // const { t } = useTranslation();
     const { user } = useGlobalContext();
 
     const [medications, setMedications] = useState([]);
@@ -27,27 +26,40 @@ const PatientMedicationCalendar = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [intakeRecords, setIntakeRecords] = useState({});
 
+    const { t, i18n } = useTranslation();
+    const [, setLangChanged] = useState(0);
+
+    useEffect(() => {
+        const handleLanguageChange = () => {
+            // Update state to force re-render
+            setLangChanged(prev => prev + 1);
+            init();
+
+        };
+
+        i18n.on('languageChanged', handleLanguageChange);
+        return () => {
+            i18n.off('languageChanged', handleLanguageChange);
+        };
+    }, [i18n]);
+
     useEffect(() => {
         registerForPushNotificationsAsync()
-            .then(registerNotificationCategory) // Register categories after permissions
+            .then(registerNotificationCategory)
             .then(init);
 
         const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
             const { notification, actionIdentifier } = response;
             const { data } = notification.request.content;
-
             const medicationId = data.medicationId;
             const date = data.date;
             const time = data.time;
 
             if (actionIdentifier === TAKEN_ACTION) {
-                // Update intake status to 'taken'
                 updateIntakeRecord(medicationId, date, time, 'taken');
             } else if (actionIdentifier === NOT_TAKEN_ACTION) {
-                // Update intake status to 'not_taken'
                 updateIntakeRecord(medicationId, date, time, 'not_taken');
             } else {
-                // Handle default notification tap if needed
                 console.log('Default notification tap');
             }
         });
@@ -57,9 +69,6 @@ const PatientMedicationCalendar = () => {
         };
     }, []);
 
-    /**
-     * Registers the device for push notifications.
-     */
     const registerForPushNotificationsAsync = async () => {
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
@@ -70,59 +79,43 @@ const PatientMedicationCalendar = () => {
         }
 
         if (finalStatus !== 'granted') {
-            Alert.alert('Permission Required', 'Failed to get push token for notifications!');
+            Alert.alert(t('permissionRequired'), t('failedToGetPushToken'));
             return;
         }
     };
 
-    /**
-     * Registers notification categories and actions.
-     */
     const registerNotificationCategory = async () => {
         await Notifications.setNotificationCategoryAsync(CATEGORY_ID, [
             {
                 identifier: TAKEN_ACTION,
-                buttonTitle: 'Taken',
-                options: {
-                    foreground: false, // Prevents the app from opening
-                },
+                buttonTitle: t('taken'),
+                options: { foreground: false },
             },
             {
                 identifier: NOT_TAKEN_ACTION,
-                buttonTitle: 'Not Taken',
-                options: {
-                    foreground: false, // Prevents the app from opening
-                },
+                buttonTitle: t('notTaken'),
+                options: { foreground: false },
             },
         ]);
     };
 
-    /**
-     * Initializes the component by fetching medications and intake records.
-     */
     const init = async () => {
         try {
             setLoading(true);
-            // Cancel all existing notifications to prevent duplicates
             await Notifications.cancelAllScheduledNotificationsAsync();
 
-            // Fetch medications from the database
             const medResponse = await databases.listDocuments(
-                'HealthManagementDatabaseId',                 // Replace with your actual Database ID
-                'MedicationsCollectionId',                    // Replace with your Medications Collection ID
+                'HealthManagementDatabaseId',
+                'MedicationsCollectionId',
                 [Query.equal('userMedication', user.$id)]
             );
             const fetchedMedications = medResponse.documents || [];
             setMedications(fetchedMedications);
 
-            // Fetch intake records
             const intakeResponse = await databases.listDocuments(
-                'HealthManagementDatabaseId',                 // Replace with your actual Database ID
-                'IntakeRecords',                              // Replace with your Intake Records Collection ID
-                [
-                    Query.equal('users', user.$id),
-                    // Optional: Add date range queries if needed
-                ]
+                'HealthManagementDatabaseId',
+                'IntakeRecords',
+                [Query.equal('users', user.$id)]
             );
             const fetchedIntakeRecords = intakeResponse.documents || [];
             const intakeMap = {};
@@ -132,11 +125,10 @@ const PatientMedicationCalendar = () => {
             });
             setIntakeRecords(intakeMap);
 
-            // Process medications to prepare agenda items and schedule notifications
             await processMedications(fetchedMedications);
         } catch (error) {
             console.error('Error fetching patient data:', error);
-            Alert.alert('Error', 'Failed to fetch medication data.');
+            Alert.alert(t('error'), t('errorFetchingMedicationData'));
             setMedications([]);
             setItems({});
         } finally {
@@ -144,31 +136,22 @@ const PatientMedicationCalendar = () => {
         }
     };
 
-    /**
-     * Refetches medication data with loading and error handling.
-     */
     const refetch = async () => {
         try {
             setRefreshing(true);
             await init();
         } catch (error) {
             console.error('Error during refetch:', error);
-            Alert.alert('Error', 'Failed to refresh data.');
+            Alert.alert(t('error'), t('errorRefreshingData'));
         } finally {
             setRefreshing(false);
         }
     };
 
-    /**
-     * Handles the refresh button press.
-     */
     const onRefresh = useCallback(() => {
         refetch();
     }, [medications]);
 
-    /**
-     * Adds an event to the agenda items.
-     */
     const addEvent = (itemsObj, dateStr, med, time) => {
         if (!itemsObj[dateStr]) {
             itemsObj[dateStr] = [];
@@ -179,28 +162,22 @@ const PatientMedicationCalendar = () => {
             dosage: med.dosage,
             time: time,
             date: dateStr,
-            userId: user.$id, // Ensure userId is included for IntakeRecords
+            userId: user.$id,
             formattedStartDate: moment(med.startDate).format('MMM DD, YYYY'),
             formattedEndDate: moment(med.endDate).format('MMM DD, YYYY'),
-            description: med.description || '', // **Added Description**
+            description: med.description || '',
         });
     };
 
-    /**
-     * Determines if a day is an interval day based on the interval value.
-     */
     const isIntervalDay = (dayIndex, intervalValue) => {
         return (dayIndex % intervalValue) === 0;
     };
 
-    /**
-     * Schedules a notification for a medication at a specific date and time.
-     */
     const scheduleMedicationNotification = async (med, date, time) => {
         console.log(`Scheduling notification for: ${med.medicineName} on ${date} at ${time}`);
 
-        const timeFormats = ["h:mm A", "H:mm"]; // Supports both 12-hour and 24-hour formats
-        const timeMoment = moment(time, timeFormats, true); // 'true' for strict parsing
+        const timeFormats = ["h:mm A", "H:mm"];
+        const timeMoment = moment(time, timeFormats, true);
 
         if (!timeMoment.isValid()) {
             console.error(`Invalid time format for medication ${med.medicineName}: ${time}`);
@@ -210,14 +187,12 @@ const PatientMedicationCalendar = () => {
         const hour = timeMoment.hour();
         const minute = timeMoment.minute();
 
-        // Create the notification date by combining the date and time
         let notificationDate = moment(date)
             .set({ hour, minute, second: 0, millisecond: 0 })
-            .local(); // Ensure local time
+            .local();
 
         console.log(`Initial Notification Date: ${notificationDate.format('YYYY-MM-DD HH:mm:ss')}`);
 
-        // Adjust if notification time is in the past
         if (notificationDate.isSameOrBefore(moment())) {
             notificationDate.add(1, 'day');
             console.log(`Adjusted Notification Date (next day): ${notificationDate.format('YYYY-MM-DD HH:mm:ss')}`);
@@ -226,16 +201,16 @@ const PatientMedicationCalendar = () => {
         try {
             const notificationId = await Notifications.scheduleNotificationAsync({
                 content: {
-                    title: 'Medication Reminder',
-                    body: `It's time to take your medicine: ${med.medicineName} (${med.dosage})`,
+                    title: t('medicationReminderTitle', { medicine: med.medicineName, dosage: med.dosage }) || 'Medication Reminder',
+                    body: t('medicationReminderBody', { medicine: med.medicineName, dosage: med.dosage }) || `It's time to take your medicine: ${med.medicineName} (${med.dosage})`,
                     sound: true,
                     priority: Notifications.AndroidNotificationPriority.HIGH,
-                    categoryIdentifier: CATEGORY_ID, // Assign the category
+                    categoryIdentifier: CATEGORY_ID,
                     data: {
                         medicationId: med.$id,
                         date: date,
                         time: time,
-                        description: med.description || '', // **Include Description in Notification Data (Optional)**
+                        description: med.description || '',
                     },
                 },
                 trigger: {
@@ -250,14 +225,10 @@ const PatientMedicationCalendar = () => {
         }
     };
 
-    /**
-     * Processes the medication list and schedules notifications accordingly.
-     */
     const processMedications = async (medicationsList) => {
         const updatedItems = {};
-        const defaultTime = "00:00"; // Define default time here
+        const defaultTime = "00:00";
 
-        // Variables to determine the overall date range
         let minDate = null;
         let maxDate = null;
 
@@ -265,7 +236,6 @@ const PatientMedicationCalendar = () => {
             const start = moment(med.startDate).startOf('day');
             const end = moment(med.endDate).endOf('day');
 
-            // Update minDate and maxDate
             if (!minDate || start.isBefore(minDate)) minDate = start.clone();
             if (!maxDate || end.isAfter(maxDate)) maxDate = end.clone();
 
@@ -329,17 +299,17 @@ const PatientMedicationCalendar = () => {
 
                 case 'specificDays':
                     const dayTimes = times.length > 0 ? times : [defaultTime];
-                    const current = start.clone();
-                    while (current.isSameOrBefore(end)) {
-                        const weekday = current.format('dddd').toLowerCase();
+                    let currentDay = start.clone();
+                    while (currentDay.isSameOrBefore(end)) {
+                        const weekday = currentDay.format('dddd').toLowerCase();
                         if (specificDays.includes(weekday)) {
-                            const dateStr = current.format('YYYY-MM-DD');
+                            const dateStr = currentDay.format('YYYY-MM-DD');
                             for (const t of dayTimes) {
                                 addEvent(updatedItems, dateStr, med, t);
                                 await scheduleMedicationNotification(med, dateStr, t);
                             }
                         }
-                        current.add(1, 'day');
+                        currentDay.add(1, 'day');
                     }
                     break;
 
@@ -372,7 +342,6 @@ const PatientMedicationCalendar = () => {
                     break;
 
                 case 'onDemand':
-                    // No events for onDemand
                     break;
 
                 default:
@@ -381,11 +350,9 @@ const PatientMedicationCalendar = () => {
             }
         }
 
-        // Ensure minDate and maxDate are set
         if (!minDate) minDate = moment().startOf('day');
         if (!maxDate) maxDate = moment().add(1, 'month').endOf('day');
 
-        // Populate all dates within the range with empty arrays if they don't have medications
         let currentDate = minDate.clone();
         while (currentDate.isSameOrBefore(maxDate)) {
             const dateStr = currentDate.format('YYYY-MM-DD');
@@ -395,7 +362,6 @@ const PatientMedicationCalendar = () => {
             currentDate.add(1, 'day');
         }
 
-        // Sort events by time for each day
         Object.keys(updatedItems).forEach((date) => {
             updatedItems[date].sort((a, b) => {
                 return moment(a.time, 'h:mm A').diff(moment(b.time, 'h:mm A'));
@@ -404,17 +370,17 @@ const PatientMedicationCalendar = () => {
 
         setItems(updatedItems);
     };
+
     const loadItems = (month) => {
         const updatedItems = { ...items };
-        const start = moment(month.dateString).startOf('month').subtract(15, 'days'); // Adjust as needed
-        const end = moment(month.dateString).endOf('month').add(15, 'days'); // Adjust as needed
+        const start = moment(month.dateString).startOf('month').subtract(15, 'days');
+        const end = moment(month.dateString).endOf('month').add(15, 'days');
 
         let current = start.clone();
         while (current.isSameOrBefore(end)) {
             const dateStr = current.format('YYYY-MM-DD');
             if (!updatedItems[dateStr]) {
-                updatedItems[dateStr] = []; // Initialize with empty array
-                // Optionally, add logic to fetch and add medications for this date
+                updatedItems[dateStr] = [];
             }
             current.add(1, 'day');
         }
@@ -422,9 +388,6 @@ const PatientMedicationCalendar = () => {
         setItems(updatedItems);
     };
 
-    /**
-     * Renders each medication item in the agenda.
-     */
     const renderItem = useCallback((item) => {
         const key = `${item.id}_${item.date}_${item.time}`;
         const intakeStatus = intakeRecords[key] || 'pending';
@@ -436,41 +399,32 @@ const PatientMedicationCalendar = () => {
                     ...item,
                     intakeStatus,
                     userId: user.$id,
-                    description: item.description, // **Pass Description to MedicationItem**
+                    description: item.description,
                 }}
                 onStatusUpdate={updateIntakeRecord}
             />
         );
     }, [intakeRecords]);
 
-    /**
-     * Renders the view when there are no medications on a selected date.
-     */
     const renderEmptyDate = useCallback(() => {
         return (
             <View style={styles.emptyDateContainer}>
-                <Text style={styles.noMedicationsText}>No Medications</Text>
+                <Text style={styles.noMedicationsText}>{t('noMedications')}</Text>
             </View>
         );
-    }, []);
+    }, [t]);
 
-    /**
-     * Updates the intakeRecords state when a medication status is updated.
-     */
     const updateIntakeRecord = async (medicationId, date, time, status) => {
         try {
-            // Format the date and time to match the documentId format
             const formattedDate = moment(date).format('YYYYMMDD');
             const formattedTime = moment(time, ['h:mm A', 'H:mm']).format('HHmm');
-
             const documentId = `${medicationId}-${formattedDate}-${formattedTime}`;
 
-            // Check if document exists
             let documentExists = false;
             try {
                 await databases.getDocument(
-                    'HealthManagementDatabaseId', // Replace with your actual Database ID
-                    'IntakeRecords',             // Replace with your Intake Records Collection ID
+                    'HealthManagementDatabaseId',
+                    'IntakeRecords',
                     documentId
                 );
                 documentExists = true;
@@ -504,29 +458,27 @@ const PatientMedicationCalendar = () => {
                 );
             }
 
-            // Update local state
             const key = `${medicationId}_${date}_${time}`;
             setIntakeRecords(prev => ({
                 ...prev,
                 [key]: status,
             }));
 
-            // Provide user feedback using Toast
             if (status === 'taken') {
                 Toast.show({
                     type: 'success',
-                    text1: 'Great Job!',
-                    text2: 'You have taken your medication.',
-                    position: 'top', // Changed from 'bottom' to 'top'
+                    text1: t('greatJob'),
+                    text2: t('takenMedication'),
+                    position: 'top',
                     visibilityTime: 3000,
                     autoHide: true,
                 });
             } else {
                 Toast.show({
                     type: 'info',
-                    text1: 'Reminder',
-                    text2: 'You have not taken your medication.',
-                    position: 'top', // Changed from 'bottom' to 'top'
+                    text1: t('reminder'),
+                    text2: t('notTakenMedication'),
+                    position: 'top',
                     visibilityTime: 3000,
                     autoHide: true,
                 });
@@ -535,20 +487,19 @@ const PatientMedicationCalendar = () => {
             console.error('Error updating intake status:', error);
             Toast.show({
                 type: 'error',
-                text1: 'Error',
-                text2: 'Failed to update intake status. Please try again.',
-                position: 'top', // Changed from 'bottom' to 'top'
+                text1: t('error'),
+                text2: t('failedToUpdateIntake'),
+                position: 'top',
                 visibilityTime: 3000,
                 autoHide: true,
             });
         }
     };
 
-
     if (loading && !refreshing) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
-                {/*<ActivityIndicator size="large" color="#00adf5" />*/}
+                <ActivityIndicator size="large" color={colors.midnight_green.DEFAULT} />
             </SafeAreaView>
         );
     }
@@ -556,8 +507,8 @@ const PatientMedicationCalendar = () => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Medication Calendar</Text>
-                <TouchableOpacity onPress={onRefresh} style={styles.refreshButton} accessibilityLabel="Refresh">
+                <Text style={styles.headerTitle}>{t('medicationCalendarTitle')}</Text>
+                <TouchableOpacity onPress={onRefresh} style={styles.refreshButton} accessibilityLabel={t('refresh')}>
                     <Ionicons name="refresh" size={24} color={colors.picton_blue.DEFAULT} />
                 </TouchableOpacity>
             </View>
@@ -571,12 +522,12 @@ const PatientMedicationCalendar = () => {
                 showOnlySelectedDayItems={false}
                 showClosingKnob={true}
                 theme={{
-                    selectedDayBackgroundColor: colors.midnight_green.DEFAULT, // '#FF9C01'
-                    todayTextColor: colors.picton_blue.DEFAULT,            // '#57B2E5'
-                    agendaDayTextColor: colors.picton_blue.DEFAULT,        // '#57B2E5'
-                    agendaTodayColor: colors.picton_blue.DEFAULT,          // '#57B2E5'
-                    dotColor: colors.picton_blue.DEFAULT,                  // '#57B2E5'
-                    selectedDayTextColor: colors.white,                    // '#FFFFFF'
+                    selectedDayBackgroundColor: colors.midnight_green.DEFAULT,
+                    todayTextColor: colors.picton_blue.DEFAULT,
+                    agendaDayTextColor: colors.picton_blue.DEFAULT,
+                    agendaTodayColor: colors.picton_blue.DEFAULT,
+                    dotColor: colors.picton_blue.DEFAULT,
+                    selectedDayTextColor: colors.white,
                     agendaKnobColor: colors.ruddy_blue[100],
                 }}
             />
@@ -584,18 +535,14 @@ const PatientMedicationCalendar = () => {
             {refreshing && (
                 <View style={styles.refreshingOverlay}>
                     <ActivityIndicator size="small" color={colors.picton_blue.DEFAULT} />
-                    <Text style={styles.refreshingText}>Refreshing...</Text>
+                    <Text style={styles.refreshingText}>{t('refreshingText')}</Text>
                 </View>
             )}
 
-            {/* Ensure Toast is rendered within this component if not at the root */}
-            <Toast
-                position="top"
-                topOffset={50} // Adjust this value as needed for desired top padding
-            />
-        </SafeAreaView>)
+            <Toast position="top" topOffset={50} />
+        </SafeAreaView>
+    );
 };
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,

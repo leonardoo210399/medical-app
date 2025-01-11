@@ -14,22 +14,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PieChart } from 'react-native-chart-kit';
 import { useGlobalContext } from '../../context/GlobalProvider';
-import { databases } from '../../lib/appwrite'; // Ensure correct path
-import { Query } from 'appwrite'; // Import Query class
+import { databases } from '../../lib/appwrite';
+import { Query } from 'appwrite';
 import { parseISO, differenceInCalendarDays, addDays, format } from 'date-fns';
-import Ionicons from 'react-native-vector-icons/Ionicons'; // For Refresh Button Icon
-import colors from '../../constants/colors'; // Import centralized colors
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import colors from '../../constants/colors';
+import { useTranslation } from "react-i18next";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const screenWidth = Dimensions.get('window').width;
 
-// Define your database and collection IDs
 const DATABASE_ID = 'HealthManagementDatabaseId';
 const MEDICATIONS_COLLECTION_ID = 'MedicationsCollectionId';
 const INTAKE_RECORDS_COLLECTION_ID = 'IntakeRecords';
 
 const PatientMedicationProgress = () => {
+    const { t, i18n } = useTranslation();
     const { user } = useGlobalContext();
-    const userId = user?.$id; // Assuming Appwrite's user ID
+    const userId = user?.$id;
 
     const [medications, setMedications] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -37,12 +39,16 @@ const PatientMedicationProgress = () => {
     const [totalTaken, setTotalTaken] = useState(0);
     const [totalNotTaken, setTotalNotTaken] = useState(0);
     const [totalRemaining, setTotalRemaining] = useState(0);
-    const [refreshing, setRefreshing] = useState(false); // State for RefreshControl
+    const [refreshing, setRefreshing] = useState(false);
 
-    // Helper function to normalize status strings
+    // Function to change language and store preference (if needed in this component)
+    const changeLanguage = async (lng) => {
+        await i18n.changeLanguage(lng);
+        await AsyncStorage.setItem('appLanguage', lng);
+    };
+
     const normalizeStatus = (status) => status.replace(/_/g, ' ').toLowerCase();
 
-    // Fetch medications for the user
     const fetchMedications = async () => {
         try {
             console.log('Fetching medications for user:', userId);
@@ -55,11 +61,10 @@ const PatientMedicationProgress = () => {
             return response.documents;
         } catch (err) {
             console.error('Error fetching medications:', err);
-            throw new Error('Failed to load medications.');
+            throw new Error(t('failedToLoadMedications'));
         }
     };
 
-    // Fetch intake records for a specific medication
     const fetchIntakeRecords = async (medicationId) => {
         try {
             console.log(`Fetching intake records for medication ID: ${medicationId}`);
@@ -76,21 +81,18 @@ const PatientMedicationProgress = () => {
         }
     };
 
-    // Helper function to compute total doses
     const computeTotalDoses = (medication) => {
         if (medication.onDemand) {
-            // For on-demand medications, totalDoses is based on intake records
-            return null; // Returning null as totalDoses is not predefined
+            return null;
         }
 
         const startDate = parseISO(medication.startDate);
         const endDate = parseISO(medication.endDate);
-        const effectiveEndDate = endDate; // Always use endDate
+        const effectiveEndDate = endDate;
 
         const totalDays = differenceInCalendarDays(effectiveEndDate, startDate) + 1;
         let intakeDays = 0;
 
-        // Handle cyclic intake patterns
         if (medication.cyclicIntakeDays && medication.cyclicPauseDays) {
             const cycleLength = medication.cyclicIntakeDays + medication.cyclicPauseDays;
             const fullCycles = Math.floor(totalDays / cycleLength);
@@ -103,9 +105,7 @@ const PatientMedicationProgress = () => {
             console.log(
                 `Total Days: ${totalDays}, Cycle Length: ${cycleLength}, Full Cycles: ${fullCycles}, Intake Days: ${intakeDays}`
             );
-        }
-        // Handle specific days (e.g., only Mondays and Wednesdays)
-        else if (medication.specificDays && medication.specificDays.length > 0) {
+        } else if (medication.specificDays && medication.specificDays.length > 0) {
             const specificDaysSet = new Set(medication.specificDays.map((day) => day.toLowerCase()));
             for (let i = 0; i < totalDays; i++) {
                 const currentDay = addDays(startDate, i);
@@ -118,30 +118,24 @@ const PatientMedicationProgress = () => {
             console.log(
                 `Total Days: ${totalDays}, Specific Days: ${medication.specificDays.join(', ')}, Intake Days: ${intakeDays}`
             );
-        }
-        // Handle regular daily intake
-        else {
+        } else {
             intakeDays = totalDays;
             console.log(`Regular Medication: ${medication.medicineName}`);
             console.log(`Total Days: ${totalDays}, Intake Days: ${intakeDays}`);
         }
 
-        // Calculate totalDoses based on dailyTimes
-        const dailyTimes = medication.dailyTimes || 1; // Default to 1 if not specified
+        const dailyTimes = medication.dailyTimes || 1;
         const totalDoses = intakeDays * dailyTimes;
         console.log(`Total Doses for ${medication.medicineName}: ${totalDoses}`);
 
         return totalDoses;
     };
 
-    // Process medications to include intake statistics
     const processMedications = async (fetchedMedications) => {
         try {
             const processedMedications = await Promise.all(
                 fetchedMedications.map(async (med) => {
                     const intakeRecords = await fetchIntakeRecords(med.$id);
-
-                    // Updated to include 'not_taken' and other possible variations
                     const notTakenStatuses = ['missed', 'not taken', 'not_taken'];
 
                     const taken = intakeRecords.filter(
@@ -155,10 +149,7 @@ const PatientMedicationProgress = () => {
                     console.log(`Medication: ${med.medicineName}`);
                     console.log(`Taken: ${taken}, Not Taken: ${notTaken}`);
 
-                    // Calculate totalDoses based on schedule
                     const totalDoses = computeTotalDoses(med);
-
-                    // For on-demand medications, remaining might not be applicable
                     let remaining = null;
                     if (totalDoses !== null) {
                         remaining = totalDoses - (taken + notTaken);
@@ -178,7 +169,6 @@ const PatientMedicationProgress = () => {
 
             setMedications(processedMedications);
 
-            // Aggregate totals across all medications
             let aggregatedTaken = 0;
             let aggregatedNotTaken = 0;
             let aggregatedRemaining = 0;
@@ -200,11 +190,10 @@ const PatientMedicationProgress = () => {
             setTotalRemaining(aggregatedRemaining);
         } catch (err) {
             console.error('Error processing medications:', err);
-            throw new Error('Failed to process medications.');
+            throw new Error(t('failedToProcessMedications'));
         }
     };
 
-    // Combined function to load data
     const loadData = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -217,33 +206,28 @@ const PatientMedicationProgress = () => {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [userId]);
+    }, [userId, t]);
 
-    // Initial data load
     useEffect(() => {
         if (userId) {
             loadData();
         } else {
-            setError('User not authenticated.');
+            setError(t('userNotAuthenticated'));
             setLoading(false);
         }
-    }, [userId, loadData]);
+    }, [userId, loadData, t]);
 
-    // Handler for pull-to-refresh
     const onRefresh = useCallback(() => {
         setRefreshing(true);
         loadData();
     }, [loadData]);
 
-    // Colors for the pie chart segments
     const chartColors = {
-        taken: colors.midnight_green.DEFAULT,    // Soft Green from colors.js
-        notTaken: colors.gray[200],              // Dark Gray for 'Not Taken'
-        remaining: colors.picton_blue.DEFAULT,     // Soft Orange from secondary
+        taken: colors.midnight_green.DEFAULT,
+        notTaken: colors.gray[600],
+        remaining: colors.picton_blue.DEFAULT,
     };
 
-
-    // Chart configuration
     const chartConfig = {
         backgroundGradientFrom: colors.white,
         backgroundGradientTo: colors.white,
@@ -255,7 +239,7 @@ const PatientMedicationProgress = () => {
         decimalPlaces: 0,
     };
 
-    if (loading && !refreshing) { // Show loading indicator only during initial load
+    if (loading && !refreshing) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={colors.midnight_green.DEFAULT} />
@@ -267,32 +251,31 @@ const PatientMedicationProgress = () => {
         return (
             <SafeAreaView style={styles.errorContainer}>
                 <Text style={styles.errorText}>{error}</Text>
-                <TouchableOpacity style={styles.refreshButton} onPress={loadData} accessibilityLabel="Refresh data" accessibilityRole="button">
+                <TouchableOpacity style={styles.refreshButton} onPress={loadData} accessibilityLabel={t('refreshData')} accessibilityRole="button">
                     <Ionicons name="refresh" size={24} color={colors.white} />
-                    <Text style={styles.refreshButtonText}>Refresh</Text>
+                    <Text style={styles.refreshButtonText}>{t('refresh')}</Text>
                 </TouchableOpacity>
             </SafeAreaView>
         );
     }
 
-    // Prepare aggregated data for the total pie chart
     const aggregatedData = [
         {
-            name: 'Taken',
+            name: t('taken'),
             count: totalTaken,
             color: chartColors.taken,
             legendFontColor: colors.black,
             legendFontSize: 12,
         },
         {
-            name: 'Not Taken',
+            name: t('notTaken'),
             count: totalNotTaken,
             color: chartColors.notTaken,
             legendFontColor: colors.black,
             legendFontSize: 12,
         },
         {
-            name: 'Remaining',
+            name: t('remaining'),
             count: totalRemaining,
             color: chartColors.remaining,
             legendFontColor: colors.black,
@@ -300,7 +283,6 @@ const PatientMedicationProgress = () => {
         },
     ];
 
-    // Compute the total across all aggregated data
     const totalOverallCount = aggregatedData.reduce((acc, cur) => acc + cur.count, 0);
 
     return (
@@ -313,19 +295,17 @@ const PatientMedicationProgress = () => {
                         onRefresh={onRefresh}
                         colors={[colors.midnight_green.DEFAULT]}
                         tintColor={colors.midnight_green.DEFAULT}
-                        title="Refreshing..."
+                        title={t('refreshingText')}
                         titleColor={colors.midnight_green.DEFAULT}
                     />
                 }
             >
-                {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Medication Progress</Text>
+                    <Text style={styles.headerTitle}>{t('overallMedicationProgress')}</Text>
                 </View>
 
-                {/* Aggregated Pie Chart */}
                 <View style={styles.chartCard}>
-                    <Text style={styles.sectionTitle}>Overall Medication Progress</Text>
+                    <Text style={styles.sectionTitle}>{t('overallMedicationProgress')}</Text>
                     {totalOverallCount > 0 ? (
                         <>
                             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -359,28 +339,26 @@ const PatientMedicationProgress = () => {
                             </View>
                         </>
                     ) : (
-                        <Text style={styles.noDataText}>No intake records available.</Text>
+                        <Text style={styles.noDataText}>{t('noIntakeRecordsAvailable')}</Text>
                     )}
                 </View>
 
-                {/* Medication List */}
                 <View style={styles.medicationsCard}>
-                    <Text style={styles.sectionTitle}>Individual Medications</Text>
+                    <Text style={styles.sectionTitle}>{t('individualMedications')}</Text>
                     {medications.length === 0 ? (
-                        <Text style={styles.noMedicationsText}>No medications found.</Text>
+                        <Text style={styles.noMedicationsText}>{t('noMedicationsFound')}</Text>
                     ) : (
                         medications.map((medication) => {
-                            // Prepare data for individual medication pie chart
                             const data = [
                                 {
-                                    name: 'Taken',
+                                    name: t('taken'),
                                     count: medication.taken,
                                     color: chartColors.taken,
                                     legendFontColor: colors.black,
                                     legendFontSize: 12,
                                 },
                                 {
-                                    name: 'Not Taken',
+                                    name: t('notTaken'),
                                     count: medication.notTaken,
                                     color: chartColors.notTaken,
                                     legendFontColor: colors.black,
@@ -390,7 +368,7 @@ const PatientMedicationProgress = () => {
 
                             if (medication.remaining !== null) {
                                 data.push({
-                                    name: 'Remaining',
+                                    name: t('remaining'),
                                     count: medication.remaining,
                                     color: chartColors.remaining,
                                     legendFontColor: colors.black,
@@ -398,7 +376,6 @@ const PatientMedicationProgress = () => {
                                 });
                             }
 
-                            // Calculate total for this medication
                             const totalCount = data.reduce((acc, seg) => acc + seg.count, 0);
 
                             return (
@@ -438,7 +415,7 @@ const PatientMedicationProgress = () => {
                                         </>
                                     ) : (
                                         <Text style={styles.noDataText}>
-                                            No intakes logged for this medication.
+                                            {t('noIntakesLogged')}
                                         </Text>
                                     )}
                                 </View>
@@ -447,45 +424,14 @@ const PatientMedicationProgress = () => {
                     )}
                 </View>
             </ScrollView>
-        </SafeAreaView>)
-};
-
-// Helper function to render content with proper formatting
-const renderContent = (content) => {
-    return content.map((item, index) => {
-        switch (item.type) {
-            case 'bullet':
-                return (
-                    <Text key={index} style={styles.bulletPoint}>
-                        {"\u2022"} {item.text}
-                    </Text>
-                );
-            case 'subheading':
-                return (
-                    <Text key={index} style={styles.subheading}>
-                        {item.text}
-                    </Text>
-                );
-            case 'paragraph':
-                return (
-                    <Text key={index} style={styles.paragraph}>
-                        {item.text}
-                    </Text>
-                );
-            default:
-                return (
-                    <Text key={index} style={styles.paragraph}>
-                        {item.text}
-                    </Text>
-                );
-        }
-    });
+        </SafeAreaView>
+    );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.white, // Maintained white background
+        backgroundColor: colors.white,
     },
     scrollContainer: {
         padding: 20,
@@ -496,11 +442,44 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     headerTitle: {
-        color: colors.midnight_green.DEFAULT, // Updated color
+        color: colors.midnight_green.DEFAULT,
         fontSize: 28,
         fontWeight: '700',
         textAlign: 'center',
     },
+    loadingContainer: {
+        flex: 1,
+        backgroundColor: colors.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    errorContainer: {
+        flex: 1,
+        backgroundColor: colors.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    errorText: {
+        color: colors.gray[600],
+        fontSize: 18,
+        textAlign: 'center',
+        marginBottom: 20,
+    },
+    noMedicationsText: {
+        color: colors.gray[200],
+        fontSize: 16,
+        textAlign: 'center',
+        marginTop: 50,
+    },
+    noDataText: {
+        color: colors.gray[200],
+        fontSize: 16,
+        textAlign: 'center',
+        marginTop: 20,
+    },
+    // ... other styles remain unchanged
+
     refreshButtonTop: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -610,37 +589,7 @@ const styles = StyleSheet.create({
         color: colors.gray[200], // Updated stat text color
         fontSize: 14,
     },
-    loadingContainer: {
-        flex: 1,
-        backgroundColor: colors.white, // Maintained white background
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    errorContainer: {
-        flex: 1,
-        backgroundColor: colors.white, // Maintained white background
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-    },
-    errorText: {
-        color: colors.gray[600], // Updated error text color
-        fontSize: 18,
-        textAlign: 'center',
-        marginBottom: 20,
-    },
-    noMedicationsText: {
-        color: colors.gray[200], // Updated text color
-        fontSize: 16,
-        textAlign: 'center',
-        marginTop: 50,
-    },
-    noDataText: {
-        color: colors.gray[200], // Updated text color
-        fontSize: 16,
-        textAlign: 'center',
-        marginTop: 20,
-    },
+
     debugContainer: {
         backgroundColor: colors.gray[100], // Light gray for debug container
         borderRadius: 15,

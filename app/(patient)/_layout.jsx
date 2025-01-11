@@ -15,19 +15,20 @@ import {
 } from 'react-native';
 import { StatusBar } from "expo-status-bar";
 import { Redirect, Tabs } from "expo-router";
+import { Ionicons } from '@expo/vector-icons';
 import { icons } from "../../constants";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import Toast from "react-native-toast-message";
-import colors from "../../constants/colors"; // Import the colors
+import colors from "../../constants/colors";
+import { useTranslation } from 'react-i18next';
+import '../../translations/i18n';
 
-// Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// Define the Doctor Contact Information
 const DoctorContact = {
-    title: "Doctor Contact Information",
+    titleKey: "doctorContactTitle",  // Translation key for title
     details: {
         name: "Dr. Jane Smith",
         specialization: "Nephrologist",
@@ -38,7 +39,6 @@ const DoctorContact = {
     },
 };
 
-// TabIcon Component
 const TabIcon = ({ icon, color, name, focused }) => {
     return (
         <View style={styles.tabIconContainer}>
@@ -61,35 +61,23 @@ const TabIcon = ({ icon, color, name, focused }) => {
 };
 
 const TabLayout = () => {
+    const { t } = useTranslation();
     const { user, setUser, setIsLogged } = useGlobalContext();
-    const patient = user?.patients || {};
-
-    // Local state for each field (if needed)
-    const [name] = useState(patient.name || "");
-    const [age] = useState(patient.age?.toString() || "");
-    const [gender] = useState(patient.gender || "Other");
-    const [comorbidities] = useState(patient.comorbidities || []);
-    const [otherComorbidities] = useState(patient.otherComorbidities || "");
-    const [dialysis] = useState(patient.dialysis || false);
-    const [height] = useState(patient.height?.toString() || "");
-    const [weight] = useState(patient.weight?.toString() || "");
-    const [allergies] = useState(patient.allergies || "");
-    const [confirmedDiagnosis] = useState(patient.confirmedDiagnosis || "");
-
-    const [isModalVisible, setIsModalVisible] = useState(false); // State for Modal
+    const [isModalVisible, setIsModalVisible] = useState(false);
 
     const logout = async () => {
-        await signOut();
+        // Implement signOut logic here...
+        // await signOut();
         setUser(null);
         setIsLogged(false);
-        router.replace("/sign-in");
+        // router.replace("/sign-in"); // Uncomment and adjust if using router
     };
 
     return (
         <>
             <Tabs
                 screenOptions={{
-                    tabBarActiveTintColor: colors.primary || colors.picton_blue.DEFAULT, // Adjust as needed
+                    tabBarActiveTintColor: colors.primary || colors.picton_blue.DEFAULT,
                     tabBarInactiveTintColor: colors.gray[100],
                     tabBarShowLabel: false,
                     tabBarStyle: {
@@ -103,13 +91,13 @@ const TabLayout = () => {
                 <Tabs.Screen
                     name="patientHome"
                     options={{
-                        title: "Home",
+                        title: t('Home'), // Translate tab title if needed
                         headerShown: false,
                         tabBarIcon: ({ color, focused }) => (
                             <TabIcon
                                 icon={icons.home}
                                 color={color}
-                                name="Home"
+                                name={t('Home')}
                                 focused={focused}
                             />
                         ),
@@ -118,13 +106,13 @@ const TabLayout = () => {
                 <Tabs.Screen
                     name="patientMedicationCalender"
                     options={{
-                        title: "Medication",
+                        title: t('Medication'),
                         headerShown: false,
                         tabBarIcon: ({ color, focused }) => (
                             <TabIcon
                                 icon={icons.pill}
                                 color={color}
-                                name="Medication"
+                                name={t('Medication')}
                                 focused={focused}
                             />
                         ),
@@ -133,13 +121,13 @@ const TabLayout = () => {
                 <Tabs.Screen
                     name="patientFollowUpSchedule"
                     options={{
-                        title: "Follow Up",
+                        title: t('Follow Up'),
                         headerShown: false,
                         tabBarIcon: ({ color, focused }) => (
                             <TabIcon
                                 icon={icons.calendar}
                                 color={color}
-                                name="Follow Up"
+                                name={t('Follow Up')}
                                 focused={focused}
                             />
                         ),
@@ -148,13 +136,13 @@ const TabLayout = () => {
                 <Tabs.Screen
                     name="patientMedicationProgress"
                     options={{
-                        title: "Progress",
+                        title: t('Progress'),
                         headerShown: false,
                         tabBarIcon: ({ color, focused }) => (
                             <TabIcon
                                 icon={icons.pieChart}
                                 color={color}
-                                name="Progress"
+                                name={t('Progress')}
                                 focused={focused}
                             />
                         ),
@@ -162,20 +150,18 @@ const TabLayout = () => {
                 />
             </Tabs>
 
-            {/* Floating Help/Support Button */}
             <TouchableOpacity
                 style={styles.floatingButton}
                 onPress={() => setIsModalVisible(true)}
-                accessibilityLabel="Help or Support"
+                accessibilityLabel={t('HelpOrSupport')}
                 accessibilityRole="button"
             >
                 <Image
-                    source={icons.support} // Ensure you have a help/support icon in your icons
+                    source={icons.support}
                     style={styles.floatingButtonIcon}
                 />
             </TouchableOpacity>
 
-            {/* Modal for Doctor Contact Information */}
             <Modal
                 visible={isModalVisible}
                 transparent={true}
@@ -184,44 +170,44 @@ const TabLayout = () => {
             >
                 <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPressOut={() => setIsModalVisible(false)}>
                     <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>{DoctorContact.title}</Text>
+                        <Text style={styles.modalTitle}>{t(DoctorContact.titleKey)}</Text>
                         <View style={styles.contactDetails}>
                             <View style={styles.contactRow}>
-                                <Text style={styles.contactLabel}>Name:</Text>
+                                <Text style={styles.contactLabel}>{t('doctorNameLabel')}</Text>
                                 <Text style={styles.contactValue}>{DoctorContact.details.name}</Text>
                             </View>
                             <View style={styles.contactRow}>
-                                <Text style={styles.contactLabel}>Specialization:</Text>
+                                <Text style={styles.contactLabel}>{t('doctorSpecializationLabel')}</Text>
                                 <Text style={styles.contactValue}>{DoctorContact.details.specialization}</Text>
                             </View>
                             <View style={styles.contactRow}>
-                                <Text style={styles.contactLabel}>Phone:</Text>
+                                <Text style={styles.contactLabel}>{t('doctorPhoneLabel')}</Text>
                                 <TouchableOpacity onPress={() => Linking.openURL(`tel:${DoctorContact.details.phone}`)}>
                                     <Text style={[styles.contactValue, styles.linkText]}>{DoctorContact.details.phone}</Text>
                                 </TouchableOpacity>
                             </View>
                             <View style={styles.contactRow}>
-                                <Text style={styles.contactLabel}>Email:</Text>
+                                <Text style={styles.contactLabel}>{t('doctorEmailLabel')}</Text>
                                 <TouchableOpacity onPress={() => Linking.openURL(`mailto:${DoctorContact.details.email}`)}>
                                     <Text style={[styles.contactValue, styles.linkText]}>{DoctorContact.details.email}</Text>
                                 </TouchableOpacity>
                             </View>
                             <View style={styles.contactRow}>
-                                <Text style={styles.contactLabel}>Address:</Text>
+                                <Text style={styles.contactLabel}>{t('doctorAddressLabel')}</Text>
                                 <Text style={styles.contactValue}>{DoctorContact.details.address}</Text>
                             </View>
                             <View style={styles.contactRow}>
-                                <Text style={styles.contactLabel}>Office Hours:</Text>
+                                <Text style={styles.contactLabel}>{t('doctorOfficeHoursLabel')}</Text>
                                 <Text style={styles.contactValue}>{DoctorContact.details.hours}</Text>
                             </View>
                         </View>
                         <TouchableOpacity
                             style={styles.closeButton}
                             onPress={() => setIsModalVisible(false)}
-                            accessibilityLabel="Close Help"
+                            accessibilityLabel={t('closeHelp')}
                             accessibilityRole="button"
                         >
-                            <Text style={styles.closeButtonText}>Close</Text>
+                            <Text style={styles.closeButtonText}>{t('closeHelp')}</Text>
                         </TouchableOpacity>
                     </View>
                 </TouchableOpacity>
@@ -233,7 +219,6 @@ const TabLayout = () => {
 };
 
 const styles = StyleSheet.create({
-    // Existing styles
     tabIconContainer: {
         flexDirection: 'column',
         alignItems: 'center',
@@ -252,13 +237,11 @@ const styles = StyleSheet.create({
     tabLabelUnfocused: {
         fontWeight: '400',
     },
-
-    // Floating Help/Support Button
     floatingButton: {
         position: 'absolute',
         bottom: 100,
         right: 20,
-        backgroundColor: colors.picton_blue.DEFAULT, // Updated color
+        backgroundColor: colors.picton_blue.DEFAULT,
         width: 60,
         height: 60,
         borderRadius: 30,
@@ -275,11 +258,9 @@ const styles = StyleSheet.create({
         height: 30,
         tintColor: colors.white,
     },
-
-    // Modal Styles
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)', // You can also use colors.gray[200] with opacity
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -332,6 +313,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+    // ... other styles as needed
 });
 
 export default TabLayout;

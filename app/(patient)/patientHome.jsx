@@ -17,72 +17,28 @@ import { signOut } from "../../lib/appwrite";
 import { router } from "expo-router";
 import { icons } from "../../constants";
 import { useGlobalContext } from "../../context/GlobalProvider";
-import colors from "../../constants/colors"; // Import centralized colors
+import colors from "../../constants/colors";
+import {useTranslation} from "react-i18next";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Import centralized colors
+import { Picker } from '@react-native-picker/picker'; // Import Picker
+
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const CKDSections = [
-    {
-        title: "What is Chronic Kidney Disease?",
-        content: [
-            { type: 'bullet', text: "Chronic kidney disease, also called chronic kidney failure, involves a gradual loss of kidney function." },
-            { type: 'bullet', text: "The kidneys are damaged over time (for at least 3 months) and have a hard time doing all their important work like waste removal, maintaining blood pressure, balancing minerals, and helping to make red blood cells (RBCs)." },
-            { type: 'bullet', text: "Chronic kidney disease can progress to end-stage kidney failure, which is fatal without artificial filtering (dialysis) or a kidney transplant." },
-        ],
-        image: require("../../assets/images/urology.png"),
-    },
-    {
-        title: "Symptoms of CKD",
-        content: [
-            { type: 'bullet', text: "Urinating (peeing) more often or less often than usual" },
-            { type: 'bullet', text: "Nausea" },
-            { type: 'bullet', text: "Vomiting" },
-            { type: 'bullet', text: "Loss of appetite" },
-            { type: 'bullet', text: "Swelling of feet and ankles" },
-            { type: 'bullet', text: "Dry, itchy skin" },
-            { type: 'bullet', text: "Trouble sleeping" },
-            { type: 'bullet', text: "Trouble concentrating" },
-            { type: 'bullet', text: "Numbness in your arms, legs, ankles, or feet" },
-            { type: 'bullet', text: "Weight loss without trying to lose weight" },
-            { type: 'bullet', text: "Achy muscles or cramping" },
-        ],
-        image: require("../../assets/images/assessment.png"),
-    },
-    {
-        title: "Managing CKD",
-        content: [
-            { type: 'paragraph', text: "Here’s a focused diet counseling guide for CKD patients:" },
-            { type: 'subheading', text: "In General:" },
-            { type: 'bullet', text: "Early Detection and Regular Monitoring: CKD is best managed when detected early. Regular check-ups help track kidney function through blood tests and urine tests, allowing for timely intervention." },
-            { type: 'bullet', text: "Control Blood Pressure and Blood Sugar: High blood pressure and diabetes can worsen kidney damage. Keeping these under control with the right lifestyle and medications is crucial for slowing CKD progression." },
-            { type: 'bullet', text: "Medication Adherence: Taking your medications as prescribed is very important for managing kidney disease and preventing it from getting worse. Missing medicine for blood pressure, blood sugar, and kidney health can worsen kidney disease and cause more strain on your kidneys. Taking your medicine regularly helps keep everything stable and supports your kidneys. Using digital reminders can help you remember to take your medicine on time. If you have any side effects, let your doctor know, so they can adjust your treatment." },
-            { type: 'bullet', text: "Note: Our app will make it easy for you to track your medications and stay on top of your routine, helping you stick to your treatment plan and stay healthy!" },
-            { type: 'subheading', text: "Diet Related:" },
-            { type: 'bullet', text: "Limit Protein Intake: Reduce the amount of protein, especially from animal sources, to ease the burden on the kidneys. Focus on high-quality protein like lean meats, eggs, and plant-based proteins, but consume them in moderation based on your kidney function stage." },
-            { type: 'bullet', text: "Control Sodium (Salt) Intake: Minimize salt by avoiding processed foods and using herbs and spices for flavor to prevent fluid retention and high blood pressure." },
-            { type: 'bullet', text: "Manage Potassium and Phosphorus: Depending on kidney function, limit high-potassium foods (like bananas, oranges, potatoes, and tomatoes) and high-phosphorus foods (like dairy, nuts, and colas). A dietitian can help determine safe levels based on lab results." },
-            { type: 'bullet', text: "Monitor Fluid Intake: Depending on the stage of CKD and fluid retention, you may need to adjust how much water or other fluids you drink. Your doctor will guide how much is safe for you." },
-            { type: 'bullet', text: "Eat Heart-Healthy Foods: Since CKD often coexists with heart disease risk factors, focus on a heart-healthy diet that includes healthy fats (like olive oil), whole grains, fruits, and vegetables, while limiting saturated fats and cholesterol." },
-        ],
-        image: require("../../assets/images/medical-report.png"),
-    },
-    {
-        title: "Prevention Tips",
-        content: [
-            { type: 'bullet', text: "Maintain a healthy weight with regular exercise: Aiming for 30 minutes most days, to control blood pressure and reduce kidney damage." },
-            { type: 'bullet', text: "Avoid Smoking and Limit Alcohol: Smoking and excessive drinking can worsen kidney function. Quitting smoking and drinking in moderation, or avoiding alcohol, helps protect your kidneys and overall health." },
-            { type: 'bullet', text: "Regular Check-ups: Visit your doctor regularly to monitor kidney function, especially if you have other conditions like diabetes or hypertension." },
-            { type: 'bullet', text: "Manage Stress: Chronic stress can affect blood pressure and overall health. Practice relaxation techniques like meditation, deep breathing, or yoga to help manage stress effectively." },
-            { type: 'bullet', text: "Get Enough Sleep: Poor sleep can affect kidney function. Aim for 7-8 hours of quality sleep each night to help your body stay healthy and support kidney health." },
-        ],
-        image: require("../../assets/images/hospital.png"),
-    },
-];
+
 
 const PatientHome = () => {
+    const { t, i18n } = useTranslation();
+
+    // Function to change language
+    const changeLanguage = async (lng) => {
+        await i18n.changeLanguage(lng);
+        await AsyncStorage.setItem('appLanguage', lng);
+    };
+
     const { user, setUser, setIsLogged } = useGlobalContext();
     const patient = user?.patients || {};
 
@@ -101,6 +57,9 @@ const PatientHome = () => {
 
     const [expandedSections, setExpandedSections] = useState([]);
 
+    const [selectedLanguage, setSelectedLanguage] = useState(i18n.language);
+
+
     const toggleSection = (index) => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         if (expandedSections.includes(index)) {
@@ -117,10 +76,67 @@ const PatientHome = () => {
         router.replace("/sign-in");
     };
 
+    const CKDSections = [
+        {
+            title: t('whatIsCKDTitle'),
+            content: [
+                { type: 'bullet', text: t('whatIsCKDContent1') },
+                { type: 'bullet', text: t('whatIsCKDContent2') },
+                { type: 'bullet', text: t('whatIsCKDContent3') },
+            ],
+            image: require("../../assets/images/urology.png"),
+        },
+        {
+            title: t('symptomsOfCKDTitle'),
+            content: [
+                { type: 'bullet', text: t('symptomsOfCKDContent1') },
+                { type: 'bullet', text: t('symptomsOfCKDContent2') },
+                { type: 'bullet', text: t('symptomsOfCKDContent3') },
+                { type: 'bullet', text: t('symptomsOfCKDContent4') },
+                { type: 'bullet', text: t('symptomsOfCKDContent5') },
+                { type: 'bullet', text: t('symptomsOfCKDContent6') },
+                { type: 'bullet', text: t('symptomsOfCKDContent7') },
+                { type: 'bullet', text: t('symptomsOfCKDContent8') },
+                { type: 'bullet', text: t('symptomsOfCKDContent9') },
+                { type: 'bullet', text: t('symptomsOfCKDContent10') },
+                { type: 'bullet', text: t('symptomsOfCKDContent11') },
+            ],
+            image: require("../../assets/images/assessment.png"),
+        },
+        {
+            title: t('managingCKDTitle'),
+            content: [
+                { type: 'paragraph', text: t('managingCKDParagraph') },
+                { type: 'subheading', text: t('managingCKDSubheadingGeneral') },
+                { type: 'bullet', text: t('managingCKDContent1') },
+                { type: 'bullet', text: t('managingCKDContent2') },
+                { type: 'bullet', text: t('managingCKDContent3') },
+                { type: 'bullet', text: t('managingCKDContent4') },
+                { type: 'subheading', text: t('managingCKDSubheadingDiet') },
+                { type: 'bullet', text: t('managingCKDContent5') },
+                { type: 'bullet', text: t('managingCKDContent6') },
+                { type: 'bullet', text: t('managingCKDContent7') },
+                { type: 'bullet', text: t('managingCKDContent8') },
+                { type: 'bullet', text: t('managingCKDContent9') },
+            ],
+            image: require("../../assets/images/medical-report.png"),
+        },
+        {
+            title: t('preventionTipsTitle'),
+            content: [
+                { type: 'bullet', text: t('preventionTipsContent1') },
+                { type: 'bullet', text: t('preventionTipsContent2') },
+                { type: 'bullet', text: t('preventionTipsContent3') },
+                { type: 'bullet', text: t('preventionTipsContent4') },
+                { type: 'bullet', text: t('preventionTipsContent5') },
+            ],
+            image: require("../../assets/images/hospital.png"),
+        },
+    ];
+
     return (
-        <SafeAreaView style={styles.container}>
+       <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-                {/* Header with Logout */}
                 <View style={styles.header}>
                     <View>
                         <Image
@@ -129,7 +145,15 @@ const PatientHome = () => {
                             resizeMode="contain"
                         />
                     </View>
-                    <TouchableOpacity onPress={logout} style={styles.logoutButton} accessibilityLabel="Logout" accessibilityRole="button">
+
+
+
+                    <TouchableOpacity
+                        onPress={logout}
+                        style={styles.logoutButton}
+                        accessibilityLabel={t('logout')}
+                        accessibilityRole="button"
+                    >
                         <Image
                             source={icons.logout}
                             resizeMode="contain"
@@ -140,71 +164,91 @@ const PatientHome = () => {
 
                 {/* Welcome Message */}
                 <View style={styles.welcomeContainer}>
-                    <Text style={styles.welcomeText}>Welcome, {name}!</Text>
+                    <Text style={styles.welcomeText}>{t('welcome', { name })}</Text>
+                </View>
+                <View style={styles.languageRow}>
+                    <Text style={styles.languageLabel}>{t('language')}:</Text>
+                    <View style={styles.languagePickerContainer}>
+                        <Picker
+                            selectedValue={selectedLanguage}
+                            style={styles.languagePicker}
+                            itemStyle={styles.languagePickerItem}
+                            onValueChange={(itemValue) => {
+                                changeLanguage(itemValue);
+                                setSelectedLanguage(itemValue);
+                            }}
+                            mode="dropdown"
+                        >
+                            <Picker.Item label={t('english')} value="en" />
+                            <Picker.Item label={t('hindi')} value="hi" />
+                            <Picker.Item label={t('marathi')} value="mr" />
+                        </Picker>
+                    </View>
                 </View>
 
                 {/* Profile Details */}
                 <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>Profile Details</Text>
+                    <Text style={styles.sectionTitle}>{t('profileDetails')}</Text>
                     <View style={styles.profileDetails}>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Name:</Text>
+                            <Text style={styles.detailLabel}>{t('name')}:</Text>
                             <Text style={styles.detailValue}>{name}</Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Age:</Text>
+                            <Text style={styles.detailLabel}>{t('age')}:</Text>
                             <Text style={styles.detailValue}>{age}</Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Gender:</Text>
+                            <Text style={styles.detailLabel}>{t('gender')}:</Text>
                             <Text style={styles.detailValue}>{gender}</Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Comorbidity:</Text>
-                            <Text style={styles.detailValue}>{comorbidities.join(", ")}</Text>
+                            <Text style={styles.detailLabel}>{t('comorbidity')}:</Text>
+                            <Text style={styles.detailValue}>{comorbidities.join(', ')}</Text>
                         </View>
-                        {comorbidities.includes("Others") && (
+                        {comorbidities.includes('Others') && (
                             <View style={styles.detailRow}>
-                                <Text style={styles.detailLabel}>Other Comorbidities:</Text>
+                                <Text style={styles.detailLabel}>{t('otherComorbidities')}:</Text>
                                 <Text style={styles.detailValue}>{otherComorbidities}</Text>
                             </View>
                         )}
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Dialysis:</Text>
-                            <Text style={styles.detailValue}>{dialysis ? "Yes" : "No"}</Text>
+                            <Text style={styles.detailLabel}>{t('dialysis')}:</Text>
+                            <Text style={styles.detailValue}>{dialysis ? 'Yes' : 'No'}</Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Height:</Text>
-                            <Text style={styles.detailValue}>{height ? `${height} cm` : "N/A"}</Text>
+                            <Text style={styles.detailLabel}>{t('height')}:</Text>
+                            <Text style={styles.detailValue}>{height ? `${height} cm` : 'N/A'}</Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Weight:</Text>
-                            <Text style={styles.detailValue}>{weight ? `${weight} kg` : "N/A"}</Text>
+                            <Text style={styles.detailLabel}>{t('weight')}:</Text>
+                            <Text style={styles.detailValue}>{weight ? `${weight} kg` : 'N/A'}</Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Allergies:</Text>
-                            <Text style={styles.detailValue}>{allergies || "None"}</Text>
+                            <Text style={styles.detailLabel}>{t('allergies')}:</Text>
+                            <Text style={styles.detailValue}>{allergies || 'None'}</Text>
                         </View>
                         <View style={styles.detailRow}>
-                            <Text style={styles.detailLabel}>Diet:</Text>
-                            <Text style={styles.detailValue}>{diet || "None"}</Text>
+                            <Text style={styles.detailLabel}>{t('diet')}:</Text>
+                            <Text style={styles.detailValue}>{diet || 'None'}</Text>
                         </View>
                     </View>
                 </View>
 
                 {/* CKD Information */}
                 <View style={styles.card}>
-                    <Text style={styles.sectionTitle}>About Chronic Kidney Disease (CKD)</Text>
+                    <Text style={styles.sectionTitle}>{t('aboutCKD')}</Text>
                     {CKDSections.map((section, index) => (
                         <View key={index} style={styles.ckdSection}>
-                            <TouchableOpacity onPress={() => toggleSection(index)} style={styles.ckdHeader} accessibilityLabel={`Toggle section ${section.title}`} accessibilityRole="button">
+                            <TouchableOpacity
+                                onPress={() => toggleSection(index)}
+                                style={styles.ckdHeader}
+                                accessibilityLabel={`${t('Toggle section')} ${section.title}`}
+                                accessibilityRole="button"
+                            >
                                 <Text style={styles.ckdTitle}>{section.title}</Text>
                                 <Image
-                                    source={
-                                        expandedSections.includes(index)
-                                            ? icons.upArrow
-                                            : icons.downArrow
-                                    }
+                                    source={expandedSections.includes(index) ? icons.upArrow : icons.downArrow}
                                     style={styles.arrowIcon}
                                 />
                             </TouchableOpacity>
@@ -399,6 +443,45 @@ const styles = StyleSheet.create({
         fontSize: 16,
         lineHeight: 22,
         marginBottom: 10,
+    },
+    languageRow: {
+        flexDirection: 'row',
+        alignItems: 'center',  // Centers items vertically
+        marginBottom: 20,
+        alignSelf: 'center',
+        width: '100%',          // Adjust as needed for your layout
+        justifyContent: 'space-between',
+    },
+    languageLabel: {
+        fontSize: 20,
+        color: colors.midnight_green.DEFAULT,
+        fontWeight: '500',
+        // Ensuring consistent height with the Picker
+        height: 50,
+        textAlignVertical: 'center',
+        marginRight: 10,
+        width: '40%',
+    },
+    languagePickerContainer: {
+        flex: 1,  // Picker takes up the remaining space in the row
+        borderWidth: 1,
+        borderColor: colors.gray[300],
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: colors.white,
+        // Matching the height of the label
+        height: 50,
+        justifyContent: 'center',
+    },
+    languagePicker: {
+        flex: 1,
+        height: '100%',          // Ensures Picker uses full container height
+        color: colors.midnight_green.DEFAULT,
+        paddingHorizontal: 10,
+    },
+    languagePickerItem: {
+        color: colors.midnight_green.DEFAULT,
+        fontSize: 16,
     },
 });
 

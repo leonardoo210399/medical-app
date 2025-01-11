@@ -4,8 +4,8 @@
     "slug": "ckd",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "assets/images/full_logo.png",
-    "scheme": "CKD",
+    "icon": "assets/icon.png",
+    "scheme": ["ckd"],
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "assets/images/splash_screen.png",
@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "assets/images/full_logo.png",
+        "foregroundImage": "assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.aditya210399.CKD"
@@ -30,7 +30,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "sounds": ["./assets/sound/mySoundFile.mp3"]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

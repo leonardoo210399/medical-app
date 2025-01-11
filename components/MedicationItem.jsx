@@ -10,15 +10,16 @@ import {
     ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { databases } from '../lib/appwrite'; // Adjust the import path as needed
+import { databases } from '../lib/appwrite';
 import moment from 'moment';
+import { useTranslation } from 'react-i18next';
 
 const MedicationItem = ({ item, onStatusUpdate }) => {
-    // console.log("item",item);
-    const [status, setStatus] = useState('pending'); // Default to 'pending'
+    const { t } = useTranslation();
+    const [status, setStatus] = useState('pending');
     const [isUpdating, setIsUpdating] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [isDescriptionVisible, setDescriptionVisible] = useState(false); // New state for description modal
+    const [isDescriptionVisible, setDescriptionVisible] = useState(false);
 
     useEffect(() => {
         const fetchStatus = async () => {
@@ -26,20 +27,18 @@ const MedicationItem = ({ item, onStatusUpdate }) => {
                 const formattedDate = moment(item.date).format('YYYYMMDD');
                 const formattedTime = moment(item.time, ['h:mm A', 'H:mm']).format('HHmm');
                 const documentId = `${item.id}-${formattedDate}-${formattedTime}`;
-
                 const document = await databases.getDocument(
-                    'HealthManagementDatabaseId', // Replace with your actual Database ID
-                    'IntakeRecords',             // Replace with your Intake Records Collection ID
+                    'HealthManagementDatabaseId',
+                    'IntakeRecords',
                     documentId
                 );
-
                 if (document && document.status) {
                     setStatus(document.status);
                 }
             } catch (error) {
-                if (error.code !== 404) { // Ignore if document doesn't exist
+                if (error.code !== 404) {
                     console.error('Error fetching intake status:', error);
-                    Alert.alert('Error', 'Failed to fetch intake status.');
+                    Alert.alert(t('error'), t('failedToFetchIntakeStatus'));
                 }
             } finally {
                 setLoading(false);
@@ -47,12 +46,8 @@ const MedicationItem = ({ item, onStatusUpdate }) => {
         };
 
         fetchStatus();
-    }, [item.id, item.date, item.time]);
+    }, [item.id, item.date, item.time, t]);
 
-    /**
-     * Handles updating the intake status.
-     * @param {string} newStatus - The new status ('taken' or 'not_taken').
-     */
     const handleStatusUpdate = async (newStatus) => {
         setIsUpdating(true);
         try {
@@ -60,12 +55,11 @@ const MedicationItem = ({ item, onStatusUpdate }) => {
             const formattedTime = moment(item.time, ['h:mm A', 'H:mm']).format('HHmm');
             const documentId = `${item.id}-${formattedDate}-${formattedTime}`;
 
-            // Attempt to fetch the document to check if it exists
             let documentExists = false;
             try {
                 await databases.getDocument(
-                    'HealthManagementDatabaseId', // Replace with your actual Database ID
-                    'IntakeRecords',             // Replace with your Intake Records Collection ID
+                    'HealthManagementDatabaseId',
+                    'IntakeRecords',
                     documentId
                 );
                 documentExists = true;
@@ -73,25 +67,21 @@ const MedicationItem = ({ item, onStatusUpdate }) => {
                 if (error.code === 404) {
                     documentExists = false;
                 } else {
-                    throw error; // Re-throw if it's not a 404 error
+                    throw error;
                 }
             }
 
             if (documentExists) {
-                // Update the existing document's status
                 await databases.updateDocument(
-                    'HealthManagementDatabaseId', // Replace with your actual Database ID
-                    'IntakeRecords',             // Replace with your Intake Records Collection ID
+                    'HealthManagementDatabaseId',
+                    'IntakeRecords',
                     documentId,
-                    {
-                        status: newStatus,
-                    }
+                    { status: newStatus }
                 );
             } else {
-                // Create a new document with the specified documentId
                 await databases.createDocument(
-                    'HealthManagementDatabaseId', // Replace with your actual Database ID
-                    'IntakeRecords',             // Replace with your Intake Records Collection ID
+                    'HealthManagementDatabaseId',
+                    'IntakeRecords',
                     documentId,
                     {
                         medications: item.id,
@@ -103,25 +93,17 @@ const MedicationItem = ({ item, onStatusUpdate }) => {
                 );
             }
 
-            // Update local state and notify parent component
             setStatus(newStatus);
             onStatusUpdate(item.id, formattedDate, formattedTime, newStatus);
-
-            // Provide user feedback
-            // Alert.alert('Success', `Marked as ${newStatus === 'taken' ? 'Taken' : 'Not Taken'}`);
         } catch (error) {
             console.error('Error updating intake status:', error);
-            // Revert local state if backend update fails
             setStatus('pending');
-            Alert.alert('Error', 'Failed to update intake status. Please try again.');
+            Alert.alert(t('error'), t('failedToUpdateIntakeStatus'));
         } finally {
             setIsUpdating(false);
         }
     };
 
-    /**
-     * Renders the description modal.
-     */
     const renderDescriptionModal = () => (
         <Modal
             visible={isDescriptionVisible}
@@ -131,19 +113,19 @@ const MedicationItem = ({ item, onStatusUpdate }) => {
         >
             <View style={styles.modalBackground}>
                 <View style={styles.modalContainer}>
-                    <Text style={styles.modalTitle}>Description</Text>
+                    <Text style={styles.modalTitle}>{t('description')}</Text>
                     <ScrollView style={styles.modalContent}>
                         <Text style={styles.modalText}>
-                            {item.description ? item.description : 'No description available.'}
+                            {item.description ? item.description : t('noDescription')}
                         </Text>
                     </ScrollView>
                     <TouchableOpacity
                         onPress={() => setDescriptionVisible(false)}
                         style={styles.closeButton}
-                        accessibilityLabel="Close Description"
+                        accessibilityLabel={t('close')}
                         accessibilityRole="button"
                     >
-                        <Text style={styles.closeButtonText}>Close</Text>
+                        <Text style={styles.closeButtonText}>{t('close')}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -162,18 +144,17 @@ const MedicationItem = ({ item, onStatusUpdate }) => {
         <View style={styles.itemContainer}>
             <View style={styles.headerContainer}>
                 <Text style={styles.medicineName}>{item.medicineName}</Text>
-                {/* Info Icon */}
                 <TouchableOpacity
                     onPress={() => setDescriptionVisible(true)}
                     style={styles.infoIcon}
-                    accessibilityLabel="Show Description"
+                    accessibilityLabel={t('showDescription')}
                     accessibilityRole="button"
                 >
                     <Ionicons name="information-circle-outline" size={20} color="#007BFF" />
                 </TouchableOpacity>
             </View>
-            <Text style={styles.dosage}>Dosage: {item.dosage}</Text>
-            <Text style={styles.timeText}>Time: {item.time}</Text>
+            <Text style={styles.dosage}>{t('dosage')}: {item.dosage}</Text>
+            <Text style={styles.timeText}>{t('time')}: {item.time}</Text>
             <View style={styles.statusContainer}>
                 <TouchableOpacity
                     style={[
@@ -182,11 +163,11 @@ const MedicationItem = ({ item, onStatusUpdate }) => {
                     ]}
                     onPress={() => handleStatusUpdate('taken')}
                     disabled={isUpdating || status === 'taken'}
-                    accessibilityLabel="Mark as Taken"
+                    accessibilityLabel={t('markAsTaken')}
                     accessibilityRole="button"
                 >
                     <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                    <Text style={styles.statusText}>Taken</Text>
+                    <Text style={styles.statusText}>{t('taken')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     style={[
@@ -195,22 +176,21 @@ const MedicationItem = ({ item, onStatusUpdate }) => {
                     ]}
                     onPress={() => handleStatusUpdate('not_taken')}
                     disabled={isUpdating || status === 'not_taken'}
-                    accessibilityLabel="Mark as Not Taken"
+                    accessibilityLabel={t('markAsNotTaken')}
                     accessibilityRole="button"
                 >
                     <Ionicons name="close-circle" size={20} color="#fff" />
-                    <Text style={styles.statusText}>Not Taken</Text>
+                    <Text style={styles.statusText}>{t('notTaken')}</Text>
                 </TouchableOpacity>
             </View>
             {status !== 'pending' && (
                 <Text style={styles.statusLabel}>
-                    Status: {status === 'taken' ? '✅ Taken' : '❌ Not Taken'}
+                    {t('status')}: {status === 'taken' ? `✅ ${t('taken')}` : `❌ ${t('notTaken')}`}
                 </Text>
             )}
             {isUpdating && (
                 <ActivityIndicator size="small" color="#00adf5" style={styles.loadingIndicator} />
             )}
-            {/* Description Modal */}
             {renderDescriptionModal()}
         </View>
     );
@@ -237,7 +217,7 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         color: '#333333',
-        flex: 1, // Takes up remaining space
+        flex: 1,
     },
     infoIcon: {
         padding: 4,
@@ -266,10 +246,10 @@ const styles = StyleSheet.create({
         marginRight: 5,
     },
     takenButton: {
-        backgroundColor: '#28a745', // Green color for "Taken"
+        backgroundColor: '#28a745',
     },
     notTakenButton: {
-        backgroundColor: '#dc3545', // Red color for "Not Taken"
+        backgroundColor: '#dc3545',
         marginRight: 0,
         marginLeft: 5,
     },
@@ -286,10 +266,9 @@ const styles = StyleSheet.create({
     loadingIndicator: {
         marginTop: 10,
     },
-    // Modal Styles
     modalBackground: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.5)", // Semi-transparent background
+        backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",
         padding: 20
     },
