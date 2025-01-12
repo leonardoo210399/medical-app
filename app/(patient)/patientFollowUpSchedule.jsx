@@ -108,6 +108,7 @@ const PatientFollowUpSchedule = () => {
                 sound: 'mysoundfile.mp3',
                 vibrationPattern: [0, 250, 250, 250],
                 lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+
             });
         }
     };
