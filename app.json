@@ -34,7 +34,7 @@
       [
         "expo-notifications",
         {
-          "sounds": ["./assets/sound/mysoundfile.mp3"]
+          "sounds": ["assets/sound/mysoundfile.mp3"]
         }
       ]
     ],

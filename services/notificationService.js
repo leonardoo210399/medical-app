@@ -29,7 +29,7 @@ export const scheduleMedicationNotification = async (medication) => {
             content: {
                 title: 'Medication Reminder',
                 body: `It's time to take your medication: ${medicineName}`,
-                sound: true,
+                sound: 'mysoundfile.mp3',
                 data: { medicationId: id },
             },
             trigger: eventDateTime,

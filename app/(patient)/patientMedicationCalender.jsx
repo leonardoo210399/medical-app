@@ -30,7 +30,6 @@ const PatientMedicationCalendar = () => {
     useEffect(() => {
         const handleLanguageChange = () => {
             setLangChanged(prev => prev + 1);
-            // init();
         };
 
         i18n.on('languageChanged', handleLanguageChange);
@@ -40,21 +39,24 @@ const PatientMedicationCalendar = () => {
     }, [i18n]);
 
     useEffect(() => {
-        // Register for notifications, set up categories, channels, then initialize data
         registerForPushNotificationsAsync()
             .then(registerNotificationCategory)
             .then(init);
 
-        // Setup Android Notification Channel for custom sound
         const setupNotificationChannel = async () => {
             if (Platform.OS === 'android') {
-                await Notifications.setNotificationChannelAsync('medicationReminderChannel', {
-                    name: 'Medication Reminders',
-                    importance: Notifications.AndroidImportance.HIGH,
-                    sound: 'mysoundfile.mp3', // Custom sound filename
-                    vibrationPattern: [0, 250, 250, 250],
-                    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-                });
+                try {
+                    const channel = await Notifications.setNotificationChannelAsync('medicationReminderChannel', {
+                        name: 'Medication Reminders',
+                        importance: Notifications.AndroidImportance.HIGH,
+                        sound: 'mysoundfile.mp3',
+                        vibrationPattern: [0, 250, 250, 250],
+                        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+                    });
+                    console.log('Notification Channel:', channel);
+                } catch (error) {
+                    console.error('Error setting notification channel:', error);
+                }
             }
         };
         setupNotificationChannel();
@@ -215,8 +217,10 @@ const PatientMedicationCalendar = () => {
                     title: t('medicationReminderTitle', { medicine: med.medicineName, dosage: med.dosage }) || 'Medication Reminder',
                     body: t('medicationReminderBody', { medicine: med.medicineName, dosage: med.dosage }) || `It's time to take your medicine: ${med.medicineName} (${med.dosage})`,
                     sound: 'mysoundfile.mp3',  // Custom sound
+                    vibrate: [0, 250, 250, 250], // Include vibrate property to trigger the sound
                     priority: Notifications.AndroidNotificationPriority.HIGH,
                     categoryIdentifier: CATEGORY_ID,
+                    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
                     data: {
                         medicationId: med.$id,
                         date: date,
