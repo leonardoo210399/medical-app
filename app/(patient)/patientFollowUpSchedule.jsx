@@ -105,7 +105,7 @@ const PatientFollowUpSchedule = () => {
             await Notifications.setNotificationChannelAsync('default', {
                 name: 'default',
                 importance: Notifications.AndroidImportance.HIGH,
-                sound: true,
+                sound: 'mysoundfile.mp3',
             });
         }
     };

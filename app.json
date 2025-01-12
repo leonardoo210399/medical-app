@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "CKD",
+    "name": "ReCare",
     "slug": "ckd",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -34,7 +34,7 @@
       [
         "expo-notifications",
         {
-          "sounds": ["./assets/sound/mySoundFile.mp3"]
+          "sounds": ["./assets/sound/mysoundfile.mp3"]
         }
       ]
     ],

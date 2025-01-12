@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { databases, Query } from '../../lib/appwrite';
 import { useGlobalContext } from '../../context/GlobalProvider';
@@ -17,24 +17,20 @@ const NOT_TAKEN_ACTION = 'not_taken';
 const CATEGORY_ID = 'medicationReminder';
 
 const PatientMedicationCalendar = () => {
-    // const { t } = useTranslation();
     const { user } = useGlobalContext();
+    const { t, i18n } = useTranslation();
 
     const [medications, setMedications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [items, setItems] = useState({});
     const [refreshing, setRefreshing] = useState(false);
     const [intakeRecords, setIntakeRecords] = useState({});
-
-    const { t, i18n } = useTranslation();
     const [, setLangChanged] = useState(0);
 
     useEffect(() => {
         const handleLanguageChange = () => {
-            // Update state to force re-render
             setLangChanged(prev => prev + 1);
-            init();
-
+            // init();
         };
 
         i18n.on('languageChanged', handleLanguageChange);
@@ -44,9 +40,24 @@ const PatientMedicationCalendar = () => {
     }, [i18n]);
 
     useEffect(() => {
+        // Register for notifications, set up categories, channels, then initialize data
         registerForPushNotificationsAsync()
             .then(registerNotificationCategory)
             .then(init);
+
+        // Setup Android Notification Channel for custom sound
+        const setupNotificationChannel = async () => {
+            if (Platform.OS === 'android') {
+                await Notifications.setNotificationChannelAsync('medicationReminderChannel', {
+                    name: 'Medication Reminders',
+                    importance: Notifications.AndroidImportance.HIGH,
+                    sound: 'mysoundfile.mp3', // Custom sound filename
+                    vibrationPattern: [0, 250, 250, 250],
+                    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+                });
+            }
+        };
+        setupNotificationChannel();
 
         const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
             const { notification, actionIdentifier } = response;
@@ -203,7 +214,7 @@ const PatientMedicationCalendar = () => {
                 content: {
                     title: t('medicationReminderTitle', { medicine: med.medicineName, dosage: med.dosage }) || 'Medication Reminder',
                     body: t('medicationReminderBody', { medicine: med.medicineName, dosage: med.dosage }) || `It's time to take your medicine: ${med.medicineName} (${med.dosage})`,
-                    sound: true,
+                    sound: 'mysoundfile.mp3',  // Custom sound
                     priority: Notifications.AndroidNotificationPriority.HIGH,
                     categoryIdentifier: CATEGORY_ID,
                     data: {
@@ -215,6 +226,7 @@ const PatientMedicationCalendar = () => {
                 },
                 trigger: {
                     date: notificationDate.toDate(),
+                    channelId: 'medicationReminderChannel',  // Use custom channel for Android
                 },
             });
             console.log(`Scheduled notification ID: ${notificationId} at ${notificationDate.format('YYYY-MM-DD HH:mm:ss')}`);
@@ -543,10 +555,11 @@ const PatientMedicationCalendar = () => {
         </SafeAreaView>
     );
 };
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.white, // Maintained white background
+        backgroundColor: colors.white,
     },
     scrollContainer: {
         padding: 20,
@@ -554,7 +567,7 @@ const styles = StyleSheet.create({
     },
     loadingContainer: {
         flex: 1,
-        backgroundColor: colors.white, // Maintained white background
+        backgroundColor: colors.white,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -566,21 +579,21 @@ const styles = StyleSheet.create({
     },
     noMedicationsText: {
         fontSize: 16,
-        color: colors.gray[200], // Updated text color
+        color: colors.gray[200],
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: 15,
-        backgroundColor: colors.white, // Light gray background
+        backgroundColor: colors.white,
         borderBottomWidth: 1,
-        borderBottomColor: colors.gray[300], // Medium gray border
+        borderBottomColor: colors.gray[300],
     },
     headerTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: colors.gray[200], // Dark Gray text
+        color: colors.gray[200],
     },
     refreshButton: {
         padding: 5,
@@ -599,23 +612,23 @@ const styles = StyleSheet.create({
     },
     refreshingText: {
         marginLeft: 10,
-        color: colors.picton_blue.DEFAULT, // '#57B2E5'
+        color: colors.picton_blue.DEFAULT,
         fontSize: 16,
     },
     chartCard: {
-        backgroundColor: colors.gray[100], // Light gray for card background
+        backgroundColor: colors.gray[100],
         borderRadius: 15,
         padding: 20,
         marginBottom: 30,
         alignItems: 'center',
-        shadowColor: colors.black, // Updated shadow color
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 5,
         elevation: 3,
     },
     sectionTitle: {
-        color: colors.midnight_green.DEFAULT, // Updated section title color
+        color: colors.midnight_green.DEFAULT,
         fontSize: 22,
         fontWeight: '600',
         marginBottom: 15,
@@ -640,34 +653,34 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     legendText: {
-        color: colors.gray[200], // Updated legend text color
+        color: colors.gray[200],
         fontSize: 14,
     },
     medicationsCard: {
-        backgroundColor: colors.gray[100], // Light gray for card background
+        backgroundColor: colors.gray[100],
         borderRadius: 15,
         padding: 10,
         marginBottom: 30,
-        shadowColor: colors.black, // Updated shadow color
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 5,
         elevation: 3,
     },
     medicationContainer: {
-        backgroundColor: colors.white, // White for individual medication cards
+        backgroundColor: colors.white,
         borderRadius: 15,
         padding: 15,
         marginBottom: 25,
         alignItems: 'center',
-        shadowColor: colors.black, // Updated shadow color
+        shadowColor: colors.black,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 2,
     },
     medicationName: {
-        color: colors.midnight_green.DEFAULT, // Updated medication name color
+        color: colors.midnight_green.DEFAULT,
         fontSize: 20,
         fontWeight: '600',
         marginBottom: 15,
@@ -690,24 +703,24 @@ const styles = StyleSheet.create({
         marginRight: 6,
     },
     statText: {
-        color: colors.gray[200], // Updated stat text color
+        color: colors.gray[200],
         fontSize: 14,
     },
     errorContainer: {
         flex: 1,
-        backgroundColor: colors.white, // Maintained white background
+        backgroundColor: colors.white,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
     },
     errorText: {
-        color: colors.gray[600], // Updated error text color
+        color: colors.gray[600],
         fontSize: 18,
         textAlign: 'center',
         marginBottom: 20,
     },
     noDataText: {
-        color: colors.gray[200], // Updated text color
+        color: colors.gray[200],
         fontSize: 16,
         textAlign: 'center',
         marginTop: 20,
