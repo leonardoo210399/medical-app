@@ -1,6 +1,4 @@
-// components/ScheduleFollowUpForm.js
-
-import React, {useState, useEffect} from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     Modal,
     View,
@@ -11,46 +9,47 @@ import {
     ScrollView,
     ActivityIndicator,
     Alert,
-    Platform,
     TextInput,
 } from "react-native";
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from "react-native-vector-icons/Ionicons";
 import DateTimePicker from "react-native-modal-datetime-picker";
-import {addFollowUp, updateFollowUp} from "../lib/appwrite"; // Import update function
-import {useGlobalContext} from '../context/GlobalProvider'; // Adjust the import path as necessary
-import {Formik} from 'formik';
-import * as Yup from 'yup';
-import moment from 'moment';
-import {Picker} from "@react-native-picker/picker";
+import { addFollowUp, updateFollowUp } from "../lib/appwrite"; // Import update function
+import { useGlobalContext } from "../context/GlobalProvider"; // Adjust the import path as necessary
+import { Formik } from "formik";
+import * as Yup from "yup";
+import moment from "moment";
+import { Picker } from "@react-native-picker/picker";
 
-const ScheduleFollowUpForm = ({visible, onClose, patient, onSubmit, followUp}) => { // Accept followUp prop
-    const {user} = useGlobalContext(); // Assuming the doctor is logged in and available via context
+const ScheduleFollowUpForm = ({ visible, onClose, patient, onSubmit, followUp }) => {
+    const { user } = useGlobalContext(); // Assuming the doctor is logged in and available via context
     const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
-    // Form Validation Schema using Yup
+    // Validation Schema
     const validationSchema = Yup.object().shape({
-        type: Yup.string().oneOf(['followup', 'dialysis']).required('Type is required'),
+        type: Yup.string().oneOf(["followup", "dialysis"]).required("Type is required"),
         scheduledDate: Yup.date()
-            .required('Scheduled date is required')
-            .min(new Date(), 'Scheduled date must be in the future'),
-        notes: Yup.string().max(500, 'Notes cannot exceed 500 characters'),
-        status: Yup.string().oneOf(['scheduled', 'completed', 'cancelled']).required('Status is required'),
+            .required("Scheduled date is required")
+            .min(new Date(), "Scheduled date must be in the future"),
+        notes: Yup.string().max(500, "Notes cannot exceed 500 characters"),
+        status: Yup.string()
+            .oneOf(["scheduled", "completed", "cancelled"])
+            .required("Status is required"),
     });
 
-    // Initialize form values based on whether editing or adding
-    const initialValues = {
-        type: followUp ? followUp.type : 'followup',
+    // Memoize initial values to prevent unnecessary resets
+    const initialValues = useMemo(() => ({
+        type: followUp?.type || "followup",
         scheduledDate: followUp ? new Date(followUp.scheduledDate) : new Date(),
-        notes: followUp ? followUp.notes : '',
-        status: followUp ? followUp.status : 'scheduled',
-    };
+        notes: followUp?.notes || "",
+        status: followUp?.status || "scheduled",
+    }), [followUp]);
 
-    // Handle form submission
-    const handleSubmit = async (values, {resetForm, setSubmitting}) => {
+    // Handle Form Submission
+    const handleSubmit = async (values, { resetForm, setSubmitting }) => {
         try {
             const data = {
                 doctorId: user.$id,
-                patientId: patient?.users?.$id || '', // Ensure patientId is set from props
+                patientId: patient?.users?.$id || "", // Ensure patientId is set from props
                 type: values.type,
                 scheduledDate: values.scheduledDate.toISOString(),
                 notes: values.notes,
@@ -58,21 +57,19 @@ const ScheduleFollowUpForm = ({visible, onClose, patient, onSubmit, followUp}) =
             };
 
             if (followUp) {
-                // Update existing follow-up
-                await updateFollowUp(followUp.$id, data);
+                await updateFollowUp(followUp.$id, data); // Update follow-up
                 Alert.alert("Success", "Follow-up updated successfully.");
             } else {
-                // Create new follow-up
-                await addFollowUp(data);
+                await addFollowUp(data); // Add new follow-up
                 Alert.alert("Success", "Follow-up scheduled successfully.");
             }
 
             resetForm();
-            onSubmit(); // Call the onSubmit handler passed from parent
-            onClose();
+            onSubmit(); // Notify parent component
+            onClose(); // Close modal
         } catch (error) {
-            console.error('Error scheduling follow-up:', error);
-            Alert.alert('Error', 'Failed to schedule follow-up. Please try again.');
+            console.error("Error scheduling follow-up:", error);
+            Alert.alert("Error", "Failed to schedule follow-up. Please try again.");
         } finally {
             setSubmitting(false);
         }
@@ -80,23 +77,20 @@ const ScheduleFollowUpForm = ({visible, onClose, patient, onSubmit, followUp}) =
 
     return (
         <Modal visible={visible} animationType="slide" transparent>
-            {/* Backdrop: Closes modal when pressed */}
             <TouchableWithoutFeedback onPress={onClose}>
                 <View style={styles.modalBackground}>
-                    {/* Prevent modal content from closing the modal when pressed */}
-                    <TouchableWithoutFeedback onPress={() => {
-                    }}>
+                    <TouchableWithoutFeedback>
                         <View style={styles.modalContainer}>
-                            <ScrollView contentContainerStyle={styles.scrollContainer}
-                                        showsVerticalScrollIndicator={false}>
-                                <Text
-                                    style={styles.title}>{followUp ? "Edit Follow-Up / Dialysis" : "Schedule Follow-Up / Dialysis"}</Text>
+                            <ScrollView contentContainerStyle={styles.scrollContainer}>
+                                <Text style={styles.title}>
+                                    {followUp ? "Edit Follow-Up / Dialysis" : "Schedule Follow-Up / Dialysis"}
+                                </Text>
 
                                 <Formik
                                     initialValues={initialValues}
                                     validationSchema={validationSchema}
                                     onSubmit={handleSubmit}
-                                    enableReinitialize={true} // Reinitialize form when followUp changes
+                                    enableReinitialize={true}
                                 >
                                     {({
                                           handleChange,
@@ -109,49 +103,40 @@ const ScheduleFollowUpForm = ({visible, onClose, patient, onSubmit, followUp}) =
                                           isSubmitting,
                                       }) => (
                                         <View>
-                                            {/* Display Patient Information */}
-                                            <View className="flex-row">
-                                                <Text style={styles.label}>Patient Name : </Text>
-                                                <Text style={styles.patientName}>{patient?.name || "Unknown"}</Text>
-                                            </View>
-                                            {/*<View style={styles.patientInfoContainer}>*/}
-                                            {/*    <Text style={styles.patientId}>ID: {patient?.users?.$id || "N/A"}</Text>*/}
-                                            {/*</View>*/}
+                                            {/* Patient Name */}
+                                            <Text style={styles.label}>Patient Name:</Text>
+                                            <Text style={styles.patientName}>
+                                                {patient?.name || "Unknown"}
+                                            </Text>
 
                                             {/* Type Picker */}
                                             <Text style={styles.label}>Type *</Text>
-                                            <View
-                                                style={[styles.pickerContainer, errors.type && touched.type && styles.errorInput]}>
+                                            <View style={[styles.pickerContainer, touched.type && errors.type && styles.errorInput]}>
                                                 <Picker
                                                     selectedValue={values.type}
-                                                    onValueChange={(itemValue) => setFieldValue('type', itemValue)}
+                                                    onValueChange={(itemValue) => setFieldValue("type", itemValue)}
                                                     style={styles.picker}
-                                                    mode="dropdown"
-                                                    accessibilityLabel="Select Follow-Up Type"
                                                 >
-                                                    <Picker.Item label="Follow-Up" value="followup"/>
-                                                    <Picker.Item label="Dialysis" value="dialysis"/>
+                                                    <Picker.Item label="Follow-Up" value="followup" />
+                                                    <Picker.Item label="Dialysis" value="dialysis" />
                                                 </Picker>
                                             </View>
-                                            {errors.type && touched.type && (
-                                                <Text style={styles.errorText}>{errors.type}</Text>
-                                            )}
+                                            {touched.type && errors.type && <Text style={styles.errorText}>{errors.type}</Text>}
 
-                                            {/* Scheduled Date */}
+                                            {/* Date Picker */}
                                             <Text style={styles.label}>Scheduled Date & Time *</Text>
                                             <TouchableOpacity
                                                 onPress={() => setDatePickerVisible(true)}
-                                                style={[styles.datePickerButton, errors.scheduledDate && touched.scheduledDate && styles.errorInput]}
-                                                accessibilityLabel="Select Date and Time"
-                                                accessibilityRole="button"
+                                                style={[styles.datePickerButton, touched.scheduledDate && errors.scheduledDate && styles.errorInput]}
                                             >
-                                                <Text
-                                                    style={values.scheduledDate ? styles.datePickerText : styles.placeholderText}>
-                                                    {values.scheduledDate ? moment(values.scheduledDate).format('MMMM DD, YYYY h:mm A') : "Select Scheduled Date"}
+                                                <Text style={values.scheduledDate ? styles.datePickerText : styles.placeholderText}>
+                                                    {values.scheduledDate
+                                                        ? moment(values.scheduledDate).format("MMMM DD, YYYY h:mm A")
+                                                        : "Select Scheduled Date"}
                                                 </Text>
-                                                <Ionicons name="calendar" size={20} color="#2C3A59"/>
+                                                <Ionicons name="calendar" size={20} color="#2C3A59" />
                                             </TouchableOpacity>
-                                            {errors.scheduledDate && touched.scheduledDate && (
+                                            {touched.scheduledDate && errors.scheduledDate && (
                                                 <Text style={styles.errorText}>{errors.scheduledDate}</Text>
                                             )}
                                             <DateTimePicker
@@ -159,7 +144,7 @@ const ScheduleFollowUpForm = ({visible, onClose, patient, onSubmit, followUp}) =
                                                 mode="datetime"
                                                 onConfirm={(date) => {
                                                     setDatePickerVisible(false);
-                                                    setFieldValue('scheduledDate', date);
+                                                    setFieldValue("scheduledDate", date);
                                                 }}
                                                 onCancel={() => setDatePickerVisible(false)}
                                                 minimumDate={new Date()}
@@ -168,41 +153,31 @@ const ScheduleFollowUpForm = ({visible, onClose, patient, onSubmit, followUp}) =
                                             {/* Notes */}
                                             <Text style={styles.label}>Notes</Text>
                                             <TextInput
-                                                style={[styles.textInput, styles.notesInput, errors.notes && touched.notes && styles.errorInput]}
+                                                style={[styles.textInput, styles.notesInput, touched.notes && errors.notes && styles.errorInput]}
                                                 multiline
                                                 numberOfLines={4}
-                                                onChangeText={handleChange('notes')}
-                                                onBlur={handleBlur('notes')}
+                                                onChangeText={handleChange("notes")}
+                                                onBlur={handleBlur("notes")}
                                                 value={values.notes}
                                                 placeholder="Enter additional notes (optional)"
                                                 maxLength={500}
-                                                placeholderTextColor="#999"
-                                                accessibilityLabel="Notes Input"
                                             />
-                                            {errors.notes && touched.notes && (
-                                                <Text style={styles.errorText}>{errors.notes}</Text>
-                                            )}
-                                            <Text style={styles.charCount}>{values.notes.length}/500</Text>
+                                            {touched.notes && errors.notes && <Text style={styles.errorText}>{errors.notes}</Text>}
 
                                             {/* Status Picker */}
                                             <Text style={styles.label}>Status *</Text>
-                                            <View
-                                                style={[styles.pickerContainer, errors.status && touched.status && styles.errorInput]}>
+                                            <View style={[styles.pickerContainer, touched.status && errors.status && styles.errorInput]}>
                                                 <Picker
                                                     selectedValue={values.status}
-                                                    onValueChange={(itemValue) => setFieldValue('status', itemValue)}
+                                                    onValueChange={(itemValue) => setFieldValue("status", itemValue)}
                                                     style={styles.picker}
-                                                    mode="dropdown"
-                                                    accessibilityLabel="Select Status"
                                                 >
-                                                    <Picker.Item label="Scheduled" value="scheduled"/>
-                                                    <Picker.Item label="Completed" value="completed"/>
-                                                    <Picker.Item label="Cancelled" value="cancelled"/>
+                                                    <Picker.Item label="Scheduled" value="scheduled" />
+                                                    <Picker.Item label="Completed" value="completed" />
+                                                    <Picker.Item label="Cancelled" value="cancelled" />
                                                 </Picker>
                                             </View>
-                                            {errors.status && touched.status && (
-                                                <Text style={styles.errorText}>{errors.status}</Text>
-                                            )}
+                                            {touched.status && errors.status && <Text style={styles.errorText}>{errors.status}</Text>}
 
                                             {/* Submit and Cancel Buttons */}
                                             <View style={styles.buttonContainer}>
@@ -210,22 +185,16 @@ const ScheduleFollowUpForm = ({visible, onClose, patient, onSubmit, followUp}) =
                                                     onPress={handleSubmit}
                                                     style={[styles.submitButton, isSubmitting && styles.disabledButton]}
                                                     disabled={isSubmitting}
-                                                    accessibilityLabel={followUp ? "Update Follow-Up" : "Submit Follow-Up"}
-                                                    accessibilityRole="button"
                                                 >
                                                     {isSubmitting ? (
-                                                        <ActivityIndicator color="#fff"/>
+                                                        <ActivityIndicator color="#fff" />
                                                     ) : (
-                                                        <Text
-                                                            style={styles.buttonText}>{followUp ? "Update" : "Add"}</Text>
+                                                        <Text style={styles.buttonText}>
+                                                            {followUp ? "Update" : "Add"}
+                                                        </Text>
                                                     )}
                                                 </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    onPress={onClose}
-                                                    style={styles.cancelButton}
-                                                    accessibilityLabel="Cancel Schedule"
-                                                    accessibilityRole="button"
-                                                >
+                                                <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
                                                     <Text style={styles.buttonText}>Cancel</Text>
                                                 </TouchableOpacity>
                                             </View>
@@ -239,142 +208,38 @@ const ScheduleFollowUpForm = ({visible, onClose, patient, onSubmit, followUp}) =
             </TouchableWithoutFeedback>
         </Modal>
     );
-
 };
 
 const styles = StyleSheet.create({
     modalBackground: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.5)", // Semi-transparent background
+        backgroundColor: "rgba(0,0,0,0.5)",
         justifyContent: "center",
         padding: 20,
     },
     modalContainer: {
-        backgroundColor: "#fff", // Light background for better readability
-        borderRadius: 20,
+        backgroundColor: "#fff",
+        borderRadius: 10,
         padding: 20,
-        maxHeight: '90%',
+        maxHeight: "90%",
     },
-    scrollContainer: {
-        paddingBottom: 20,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: "bold",
-        marginBottom: 20,
-        color: "#2C3A59",
-        textAlign: "center",
-    },
-    label: {
-        fontSize: 18,
-        fontWeight: "600",
-        marginBottom: 5,
-        color: "#2C3A59",
-    },
-    patientInfoContainer: {
-        backgroundColor: "#f9f9f9",
-        padding: 10,
-        borderRadius: 5,
-        marginBottom: 15,
-    },
-    patientName: {
-        fontSize: 18,
-        fontWeight: "600",
-        color: "#2C3A59",
-        marginBottom:10
-    },
-    patientId: {
-        fontSize: 14,
-        color: "#666",
-        marginTop: 5,
-    },
-    pickerContainer: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        marginBottom: 10,
-    },
-    picker: {
-        height: 50,
-        width: '100%',
-        color: '#2C3A59',
-    },
-    datePickerButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        padding: 15,
-        marginBottom: 10,
-    },
-    datePickerText: {
-        fontSize: 16,
-        color: '#2C3A59',
-    },
-    placeholderText: {
-        fontSize: 16,
-        color: '#999',
-    },
-    textInput: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        padding: Platform.OS === 'ios' ? 15 : 10,
-        marginBottom: 10,
-        minHeight: 80,
-        textAlignVertical: 'top', // For Android to align text at the top
-        color: '#2C3A59',
-    },
-    notesInput: {
-        height: 80,
-    },
-    charCount: {
-        alignSelf: 'flex-end',
-        color: '#7f8c8d',
-        fontSize: 12,
-        marginBottom: 10,
-    },
-    errorText: {
-        color: "#e74c3c",
-        marginBottom: 5,
-        fontSize: 12,
-    },
-    errorInput: {
-        borderColor: "#e74c3c",
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 20,
-    },
-    submitButton: {
-        backgroundColor: "#2980B9",
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: 10,
-        flex: 1,
-        marginRight: 10,
-        alignItems: 'center',
-    },
-    cancelButton: {
-        backgroundColor: "#95a5a6",
-        paddingVertical: 14,
-        paddingHorizontal: 20,
-        borderRadius: 10,
-        flex: 1,
-        marginLeft: 10,
-        alignItems: 'center',
-    },
-    disabledButton: {
-        backgroundColor: "#6c757d",
-    },
-    buttonText: {
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "600",
-    },
+    scrollContainer: { paddingBottom: 20 },
+    title: { fontSize: 20, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
+    label: { fontSize: 16, fontWeight: "600", marginBottom: 8 },
+    patientName: { fontSize: 16, marginBottom: 10, color: "#2C3A59" },
+    pickerContainer: { borderWidth: 1, borderColor: "#ccc", borderRadius: 5, marginBottom: 10 },
+    picker: { height: 50, color: "#2C3A59" },
+    datePickerButton: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderColor: "#ccc", borderRadius: 5, padding: 15, marginBottom: 10 },
+    datePickerText: { fontSize: 16, color: "#2C3A59" },
+    placeholderText: { fontSize: 16, color: "#999" },
+    textInput: { borderWidth: 1, borderColor: "#ccc", borderRadius: 5, padding: 10, marginBottom: 10, minHeight: 80, textAlignVertical: "top" },
+    notesInput: { height: 80 },
+    errorText: { color: "#e74c3c", fontSize: 12, marginBottom: 5 },
+    buttonContainer: { flexDirection: "row", justifyContent: "space-between", marginTop: 20 },
+    submitButton: { backgroundColor: "#2980B9", padding: 15, borderRadius: 10, flex: 1, marginRight: 10, alignItems: "center" },
+    cancelButton: { backgroundColor: "#95a5a6", padding: 15, borderRadius: 10, flex: 1, marginLeft: 10, alignItems: "center" },
+    disabledButton: { backgroundColor: "#6c757d" },
+    buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
 });
 
 export default ScheduleFollowUpForm;

@@ -23,6 +23,7 @@ import {getFollowUpsByPatient, updateScheduleStatus} from '../../lib/appwrite';
 import {useGlobalContext} from '../../context/GlobalProvider';
 import colors from '../../constants/colors';
 import {Picker} from "@react-native-picker/picker";
+import i18n from "i18next";
 
 // Configure Locales for Calendar
 LocaleConfig.locales["en"] = {
@@ -46,8 +47,7 @@ LocaleConfig.locales["mr"] = {
     dayNamesShort: ["रवि", "सोम", "मंगळ", "बुध", "गुरू", "शुक्र", "शनि"],
     today: "आज",
 };
-LocaleConfig.defaultLocale = "en";
-
+LocaleConfig.defaultLocale = i18n.language;
 const PatientFollowUpSchedule = () => {
     const {t, i18n} = useTranslation();
     const {user} = useGlobalContext();
@@ -60,10 +60,13 @@ const PatientFollowUpSchedule = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedSchedules, setSelectedSchedules] = useState([]);
     const [updating, setUpdating] = useState(false);
+    // const [, setLangChanged] = useState(0);
+    const [langChanged, setLangChanged] = useState(0);
 
     useEffect(() => {
         const handleLanguageChange = () => {
             LocaleConfig.defaultLocale = i18n.language;
+            setLangChanged(prev => prev + 1);
         };
 
         i18n.on('languageChanged', handleLanguageChange);
@@ -412,6 +415,7 @@ const PatientFollowUpSchedule = () => {
                 <ActivityIndicator size="large" color="#00adf5" style={styles.loadingIndicator}/>
             ) : (
                 <Agenda
+                    key={langChanged}  // <-- This forces a remount on language change
                     items={items}
                     selected={selectedDate}
                     onDayPress={handleDayPress}
@@ -439,7 +443,6 @@ const PatientFollowUpSchedule = () => {
                         calendarBackground: "#ffffff",
                         agendaKnobColor: colors.ruddy_blue[100],
                     }}
-                    // Optionally, add a RefreshControl similar to the medication calendar
                     refreshControl={
                         <RefreshControl
                             refreshing={refreshing}
@@ -451,6 +454,7 @@ const PatientFollowUpSchedule = () => {
                         />
                     }
                 />
+
             )}
             {modalVisible && renderModal()}
         </SafeAreaView>
