@@ -137,7 +137,7 @@ export default {
     // failedToFetchSchedules: "Failed to fetch your schedules. Please try again later.",
     // scheduleStatusUpdated: "Schedule status updated successfully.",
     // failedToUpdateSchedule: "Failed to update schedule status. Please try again.",
-    overallMedicationProgress: "Overall Medication Progress",
+    overallMedicationProgress: "Progress Chart",
     noIntakeRecordsAvailable: "No intake records available.",
     individualMedications: "Individual Medications",
     noMedicationsFound: "No medications found.",

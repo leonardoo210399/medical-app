@@ -143,7 +143,7 @@ export default {
 
     // taken: "ले लिया",
     // notTaken: "नहीं लिया",
-    remaining: "बचा हुआ",
+    remaining: "बचे हुए",
 
     // doctorContactTitle: "डॉक्टर संपर्क जानकारी",
     // doctorNameLabel: "नाम:",

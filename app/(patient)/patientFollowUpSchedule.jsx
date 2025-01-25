@@ -48,6 +48,7 @@ LocaleConfig.locales["mr"] = {
     today: "आज",
 };
 LocaleConfig.defaultLocale = i18n.language;
+
 const PatientFollowUpSchedule = () => {
     const {t, i18n} = useTranslation();
     const {user} = useGlobalContext();
@@ -60,7 +61,6 @@ const PatientFollowUpSchedule = () => {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedSchedules, setSelectedSchedules] = useState([]);
     const [updating, setUpdating] = useState(false);
-    // const [, setLangChanged] = useState(0);
     const [langChanged, setLangChanged] = useState(0);
 
     useEffect(() => {
@@ -76,13 +76,10 @@ const PatientFollowUpSchedule = () => {
     }, [i18n]);
 
     useEffect(() => {
-        // Configure notification response listener
         const subscription = Notifications.addNotificationResponseReceivedListener(response => {
             console.log('Notification response:', response);
-            // Handle notification tap if needed
         });
 
-        // Request permissions and then fetch schedules
         registerForPushNotificationsAsync().then(fetchSchedules);
 
         return () => {
@@ -111,7 +108,6 @@ const PatientFollowUpSchedule = () => {
                 sound: 'mysoundfile.mp3',
                 vibrationPattern: [0, 250, 250, 250],
                 lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-
             });
         }
     };
@@ -143,7 +139,6 @@ const PatientFollowUpSchedule = () => {
             let minDate = null;
             let maxDate = null;
 
-            // Cancel existing notifications before scheduling new ones
             await Notifications.cancelAllScheduledNotificationsAsync();
 
             fetchedSchedules.forEach((schedule) => {
@@ -154,8 +149,8 @@ const PatientFollowUpSchedule = () => {
                 formattedItems[date].push(schedule);
 
                 const scheduleDate = moment(schedule.scheduledDate).startOf('day');
-                if (!minDate || scheduleDate.isBefore(minDate)) minDate = scheduleDate.clone();
-                if (!maxDate || scheduleDate.isAfter(maxDate)) maxDate = scheduleDate.clone();
+                if (!minDate || scheduleDate.isBefore(minDate)) minDate = scheduleDate.clone().subtract(15, 'days');
+                if (!maxDate || scheduleDate.isAfter(maxDate)) maxDate = scheduleDate.clone().add(15, 'days');
 
                 const appointmentDateTime = moment(schedule.scheduledDate).subtract(1, 'hour');
                 const oneDayBefore = moment(schedule.scheduledDate).subtract(1, 'days');
@@ -173,9 +168,11 @@ const PatientFollowUpSchedule = () => {
                 );
             });
 
+            // Fallback: If no schedules found, use current day as default range.
             if (!minDate) minDate = moment().startOf('day');
             if (!maxDate) maxDate = moment().endOf('day');
 
+            // Populate empty arrays for all days between minDate and maxDate.
             let currentDate = minDate.clone();
             while (currentDate.isSameOrBefore(maxDate)) {
                 const dateStr = currentDate.format("YYYY-MM-DD");
@@ -185,6 +182,13 @@ const PatientFollowUpSchedule = () => {
                 currentDate.add(1, 'day');
             }
 
+            // Ensure the currently selected date exists in items, even if empty.
+            const selected = selectedDate || moment().format("YYYY-MM-DD");
+            if (!formattedItems[selected]) {
+                formattedItems[selected] = [];
+            }
+
+            console.log('Formatted Items:', formattedItems);
             setItems(formattedItems);
         } catch (error) {
             console.error("Error fetching schedules:", error);
@@ -199,7 +203,7 @@ const PatientFollowUpSchedule = () => {
             setLoading(false);
             setRefreshing(false);
         }
-    }, [patientId, t]);
+    }, [patientId, t, selectedDate]);
 
     const loadItems = (month) => {
         const updatedItems = {...items};
@@ -337,8 +341,6 @@ const PatientFollowUpSchedule = () => {
         return marked;
     }, [items, selectedDate]);
 
-    // Render modal if needed (not implemented in this snippet)
-
     const renderModal = () => (
         <Modal
             visible={modalVisible}
@@ -407,7 +409,6 @@ const PatientFollowUpSchedule = () => {
         </Modal>
     );
 
-
     return (
         <SafeAreaView style={styles.container}>
             <Text style={styles.title}>{t('yourScheduleTitle')}</Text>
@@ -415,7 +416,6 @@ const PatientFollowUpSchedule = () => {
                 <ActivityIndicator size="large" color="#00adf5" style={styles.loadingIndicator}/>
             ) : (
                 <Agenda
-                    key={langChanged}  // <-- This forces a remount on language change
                     items={items}
                     selected={selectedDate}
                     onDayPress={handleDayPress}
@@ -454,7 +454,6 @@ const PatientFollowUpSchedule = () => {
                         />
                     }
                 />
-
             )}
             {modalVisible && renderModal()}
         </SafeAreaView>
@@ -523,8 +522,6 @@ const styles = StyleSheet.create({
     emptyDateText: {
         fontSize: 16,
         color: "#999",
-        justifyContent: 'center',
-        alignItems: 'center'
     },
     modalContainer: {
         flex: 1,
@@ -598,20 +595,6 @@ const styles = StyleSheet.create({
         height: 50,
         color: "#555",
     },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalContent: {
-        width: '100%',
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        padding: 20,
-        alignItems: 'center',
-    },
-    // ... other styles unchanged
 });
 
 export default PatientFollowUpSchedule;

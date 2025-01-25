@@ -38,7 +38,7 @@ const PatientMedicationProgress = () => {
     const [error, setError] = useState(null);
     const [totalTaken, setTotalTaken] = useState(0);
     const [totalNotTaken, setTotalNotTaken] = useState(0);
-    const [totalRemaining, setTotalRemaining] = useState(0);
+    // Removed totalRemaining state
     const [refreshing, setRefreshing] = useState(false);
 
     // Function to change language and store preference (if needed in this component)
@@ -150,18 +150,13 @@ const PatientMedicationProgress = () => {
                     console.log(`Taken: ${taken}, Not Taken: ${notTaken}`);
 
                     const totalDoses = computeTotalDoses(med);
-                    let remaining = null;
-                    if (totalDoses !== null) {
-                        remaining = totalDoses - (taken + notTaken);
-                        remaining = remaining > 0 ? remaining : 0;
-                        console.log(`Remaining for ${med.medicineName}: ${remaining}`);
-                    }
+                    // Removed remaining calculation
 
                     return {
                         ...med,
                         taken,
                         notTaken,
-                        remaining,
+                        // Removed remaining and totalDoses if not needed
                         totalDoses,
                     };
                 })
@@ -171,23 +166,22 @@ const PatientMedicationProgress = () => {
 
             let aggregatedTaken = 0;
             let aggregatedNotTaken = 0;
-            let aggregatedRemaining = 0;
+            // Removed aggregatedRemaining
 
             processedMedications.forEach((med) => {
                 aggregatedTaken += med.taken;
                 aggregatedNotTaken += med.notTaken;
-                if (med.remaining !== null) {
-                    aggregatedRemaining += med.remaining;
-                }
+                // Removed aggregation for remaining
             });
 
             console.log(
-                `Aggregated Taken: ${aggregatedTaken}, Aggregated Not Taken: ${aggregatedNotTaken}, Aggregated Remaining: ${aggregatedRemaining}`
+                `Aggregated Taken: ${aggregatedTaken}, Aggregated Not Taken: ${aggregatedNotTaken}`
+                // Removed aggregatedRemaining from log
             );
 
             setTotalTaken(aggregatedTaken);
             setTotalNotTaken(aggregatedNotTaken);
-            setTotalRemaining(aggregatedRemaining);
+            // Removed setTotalRemaining
         } catch (err) {
             console.error('Error processing medications:', err);
             throw new Error(t('failedToProcessMedications'));
@@ -223,9 +217,9 @@ const PatientMedicationProgress = () => {
     }, [loadData]);
 
     const chartColors = {
-        taken: colors.midnight_green.DEFAULT,
-        notTaken: colors.gray[600],
-        remaining: colors.picton_blue.DEFAULT,
+        taken: "#3cb371",
+        notTaken: "#dc143c",
+        // Removed remaining color
     };
 
     const chartConfig = {
@@ -274,13 +268,7 @@ const PatientMedicationProgress = () => {
             legendFontColor: colors.black,
             legendFontSize: 12,
         },
-        {
-            name: t('remaining'),
-            count: totalRemaining,
-            color: chartColors.remaining,
-            legendFontColor: colors.black,
-            legendFontSize: 12,
-        },
+        // Removed remaining from aggregatedData
     ];
 
     const totalOverallCount = aggregatedData.reduce((acc, cur) => acc + cur.count, 0);
@@ -366,15 +354,7 @@ const PatientMedicationProgress = () => {
                                 },
                             ];
 
-                            if (medication.remaining !== null) {
-                                data.push({
-                                    name: t('remaining'),
-                                    count: medication.remaining,
-                                    color: chartColors.remaining,
-                                    legendFontColor: colors.black,
-                                    legendFontSize: 12,
-                                });
-                            }
+                            // Removed remaining from medication data
 
                             const totalCount = data.reduce((acc, seg) => acc + seg.count, 0);
 

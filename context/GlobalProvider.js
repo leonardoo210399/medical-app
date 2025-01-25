@@ -10,26 +10,24 @@ const GlobalProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getCurrentUser()
-      .then((res) => {
-        if (res) {
-          setIsLogged(true);
-          setUser(res);
-        } else {
-          setIsLogged(false);
-          setUser(null);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+    useEffect(() => {
+        getCurrentUser()
+            .then((res) => {
+                if (res) {
+                    setIsLogged(true);
+                    setUser(res);
+                } else {
+                    account.deleteSession("current").catch(console.error); // Cleanup any stale sessions
+                    setIsLogged(false);
+                    setUser(null);
+                }
+            })
+            .catch((error) => console.log(error))
+            .finally(() => setLoading(false));
+    }, []);
 
-  return (
+
+    return (
     <GlobalContext.Provider
       value={{
         isLogged,

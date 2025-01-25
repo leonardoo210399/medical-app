@@ -252,8 +252,8 @@ const PatientMedicationCalendar = () => {
             const start = moment(med.startDate).startOf('day');
             const end = moment(med.endDate).endOf('day');
 
-            if (!minDate || start.isBefore(minDate)) minDate = start.clone();
-            if (!maxDate || end.isAfter(maxDate)) maxDate = end.clone();
+            if (!minDate || start.isBefore(minDate)) minDate = start.clone().subtract(12, 'months');
+            if (!maxDate || end.isAfter(maxDate)) maxDate = end.clone().add(12, 'months');
 
             const frequency = med.frequency;
             let times = Array.isArray(med.times) && med.times.length > 0 ? med.times : [defaultTime];
